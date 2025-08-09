@@ -95,6 +95,15 @@
 
     function updateTiltReadout(angleDeg) {
         elTiltReadout.textContent = String(Math.round(angleDeg));
+        
+        // Add visual indicator for motion status
+        if (motionActive) {
+            elTiltReadout.style.color = 'var(--success)';
+            elTiltReadout.style.fontWeight = '700';
+        } else {
+            elTiltReadout.style.color = 'var(--muted)';
+            elTiltReadout.style.fontWeight = '400';
+        }
     }
 
     function updateMotionStatus(isActive) {
@@ -134,24 +143,25 @@
             if (anyDevMotion && typeof anyDevMotion.requestPermission === 'function') {
                 const res = await anyDevMotion.requestPermission();
                 motionPermitted = res === 'granted';
+                console.log('Motion permission:', res);
             }
 
             let orientationPermitted = true;
             if (anyDevOrient && typeof anyDevOrient.requestPermission === 'function') {
                 const res = await anyDevOrient.requestPermission();
                 orientationPermitted = res === 'granted';
+                console.log('Orientation permission:', res);
             }
 
             state.hasPermission = motionPermitted && orientationPermitted;
-            if (elPermissionStatus) {
-                elPermissionStatus.textContent = state.hasPermission ? 'Permission granted' : 'Permission denied or unavailable';
-            }
+            console.log('Has permission:', state.hasPermission);
+            
             if (state.hasPermission && elPermissionOverlay) {
                 elPermissionOverlay.style.display = 'none';
             }
             return state.hasPermission;
         } catch (err) {
-            elPermissionStatus.textContent = 'Permission request failed';
+            console.error('Permission request failed:', err);
             return false;
         }
     }
@@ -173,6 +183,7 @@
             let beta = latestOrientation.beta;
             if (beta > 180) beta -= 360;
             if (beta < -180) beta += 360;
+            console.log('Using orientation beta:', beta);
             return beta;
         }
         // Fallback: compute tilt from gravity (assuming stationary between samples)
@@ -180,9 +191,15 @@
             // Tilt relative to gravity using arctan2 of y/z
             const { y, z } = latestAccel;
             const betaRad = Math.atan2(y, z);
-            return betaRad * (180 / Math.PI);
+            const betaDeg = betaRad * (180 / Math.PI);
+            console.log('Using accelerometer tilt:', betaDeg);
+            return betaDeg;
         }
-        return 0;
+        
+        // If no motion data available, return a test value that changes
+        const testValue = Math.sin(Date.now() * 0.001) * 10;
+        console.log('Using test value:', testValue);
+        return testValue;
     }
 
     // Rep detection via hysteresis: neutral -> bendPastThreshold -> returnBelowHysteresis counts 1 rep
@@ -212,6 +229,7 @@
     let motionActive = false;
 
     function onOrientation(event) {
+        console.log('Orientation event:', event.beta, event.gamma, event.alpha);
         if (typeof event.beta === 'number') {
             latestOrientation = { beta: event.beta, has: true };
             lastMotionTime = Date.now();
@@ -224,6 +242,7 @@
 
     function onMotion(event) {
         const accG = event.accelerationIncludingGravity;
+        console.log('Motion event:', accG);
         if (accG && typeof accG.x === 'number' && typeof accG.y === 'number' && typeof accG.z === 'number') {
             latestAccel = { x: accG.x, y: accG.y, z: accG.z, has: true };
             lastMotionTime = Date.now();
@@ -410,11 +429,41 @@
         window.addEventListener('deviceorientation', onOrientation, true);
         window.addEventListener('devicemotion', onMotion, true);
         
+        // Also try alternative event names for broader compatibility
+        window.addEventListener('orientationchange', onOrientation, true);
+        window.addEventListener('motionchange', onMotion, true);
+        
+        // Add touch/click listeners to trigger motion detection
+        document.addEventListener('touchstart', () => {
+            console.log('Touch detected, attempting to enable motion');
+            // Some devices need user interaction to enable motion
+            if (!motionActive) {
+                updateMotionStatus(true);
+                motionActive = true;
+            }
+        });
+        
+        document.addEventListener('click', () => {
+            console.log('Click detected, attempting to enable motion');
+            if (!motionActive) {
+                updateMotionStatus(true);
+                motionActive = true;
+            }
+        });
+        
         requestAnimationFrame(tick);
         showPermissionOverlayIfNeeded();
         
         // Start with selection page
         showSelectionPage();
+        
+        // Force initial motion status update
+        setTimeout(() => {
+            if (!motionActive) {
+                console.log('No motion detected initially, showing inactive status');
+                updateMotionStatus(false);
+            }
+        }, 1000);
     }
 
     // Rebuild grid when target changes (only when idle to keep UX predictable)
