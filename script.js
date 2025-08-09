@@ -6,8 +6,8 @@
 */
 
 (function () {
-    const elPermissionBtn = document.getElementById('btn-permission');
     const elPermissionStatus = document.getElementById('permission-status');
+    const elPermissionOverlay = document.getElementById('permission-overlay');
     const elStart = document.getElementById('btn-start');
     const elStop = document.getElementById('btn-stop');
     const elReset = document.getElementById('btn-reset');
@@ -101,11 +101,11 @@
             }
 
             state.hasPermission = motionPermitted && orientationPermitted;
-            elPermissionStatus.textContent = state.hasPermission ? 'Permission granted' : 'Permission denied or unavailable';
-            if (state.hasPermission) {
-                // Collapse permission card to keep UI minimal
-                const card = document.getElementById('permissions-card');
-                if (card) card.style.display = 'none';
+            if (elPermissionStatus) {
+                elPermissionStatus.textContent = state.hasPermission ? 'Permission granted' : 'Permission denied or unavailable';
+            }
+            if (state.hasPermission && elPermissionOverlay) {
+                elPermissionOverlay.style.display = 'none';
             }
             return state.hasPermission;
         } catch (err) {
@@ -197,14 +197,25 @@
     }
 
     // Button handlers
-    elPermissionBtn.addEventListener('click', async () => {
-        const ok = await requestPermissionIfNeeded();
-        if (ok) {
-            elPermissionStatus.textContent = 'Permission granted';
-            const card = document.getElementById('permissions-card');
-            if (card) card.style.display = 'none';
+    // For iOS, we need a user gesture; we present a full-screen overlay and hide on tap after requesting perms
+    function showPermissionOverlayIfNeeded() {
+        const anyDevMotion = window.DeviceMotionEvent;
+        const anyDevOrient = window.DeviceOrientationEvent;
+        const needsGesture = (anyDevMotion && typeof anyDevMotion.requestPermission === 'function') ||
+            (anyDevOrient && typeof anyDevOrient.requestPermission === 'function');
+        if (needsGesture && elPermissionOverlay) {
+            elPermissionOverlay.style.display = 'grid';
+            const onTap = async () => {
+                await requestPermissionIfNeeded();
+                elPermissionOverlay.style.display = 'none';
+                elPermissionOverlay.removeEventListener('click', onTap);
+            };
+            elPermissionOverlay.addEventListener('click', onTap);
+        } else {
+            // Android/others: try immediately
+            requestPermissionIfNeeded();
         }
-    });
+    }
 
     elCalibrate.addEventListener('click', () => {
         // Capture several samples for robust neutral calibration
@@ -259,6 +270,7 @@
         updateStats();
         colorTiles();
         requestAnimationFrame(tick);
+        showPermissionOverlayIfNeeded();
     }
 
     // Rebuild grid when target changes (only when idle to keep UX predictable)

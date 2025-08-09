@@ -10,20 +10,23 @@
 </head>
 
 <body>
+    <div id="permission-overlay" class="overlay" role="dialog" aria-live="polite" style="display:none">
+        <div class="overlay__content">
+            <h2>Enable Motion</h2>
+            <p class="muted">Tap anywhere to enable motion sensing</p>
+        </div>
+    </div>
     <main class="app">
         <header class="app__header">
             <h1>Recovery Coach</h1>
-            <p class="subtitle">Arm bends tracker with motion sensing</p>
         </header>
 
-        <section class="card" id="permissions-card">
-            <h2>Motion Access</h2>
-            <p>
-                This app uses your phone's motion sensors to count arm bends. Hold your phone in your hand and move
-                naturally.
-            </p>
-            <button class="btn btn-primary" id="btn-permission">Enable Motion</button>
-            <p class="muted small" id="permission-status">Permission not requested</p>
+        <section class="card card--stage" id="coloring-card">
+            <div class="stage-wrap">
+                <div class="stage" aria-label="Coloring stage">
+                    <div id="coloring-grid" class="coloring-grid" aria-label="Coloring grid"></div>
+                </div>
+            </div>
         </section>
 
         <section class="card" id="controls-card">
@@ -32,10 +35,6 @@
                 <label class="control">
                     <span>Target reps</span>
                     <input type="number" id="input-target" min="1" max="200" value="30" inputmode="numeric" />
-                </label>
-                <label class="control">
-                    <span>Sensitivity (°)</span>
-                    <input type="range" id="input-threshold" min="10" max="60" value="30" />
                 </label>
             </div>
             <div class="buttons">
@@ -60,14 +59,6 @@
             </div>
             <div class="progress">
                 <div class="progress__bar" id="progress-bar" style="width: 0%"></div>
-            </div>
-        </section>
-
-        <section class="card card--stage" id="coloring-card">
-            <div class="stage-wrap">
-                <div class="stage" aria-label="Coloring stage">
-                    <div id="coloring-grid" class="coloring-grid" aria-label="Coloring grid"></div>
-                </div>
             </div>
         </section>
     </main>
