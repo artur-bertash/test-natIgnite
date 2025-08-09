@@ -3,7 +3,8 @@
 
 <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
+    <meta name="viewport"
+        content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
     <title>Recovery Coach — Arm Bends</title>
     <link rel="stylesheet" href="styles.css" />
 </head>
@@ -62,19 +63,12 @@
             </div>
         </section>
 
-        <section class="card" id="coloring-card">
-            <h2>Color the Picture</h2>
-            <p class="muted small">Each arm bend colors a piece. Complete all pieces to finish the picture.</p>
-            <div id="coloring-grid" class="coloring-grid" aria-label="Coloring grid"></div>
-        </section>
-
-        <section class="card" id="help-card">
-            <h2>Tips</h2>
-            <ul class="tips">
-                <li>Hold your phone comfortably in your hand while bending your arm.</li>
-                <li>Tap "Calibrate Neutral" while holding your arm relaxed at the starting position.</li>
-                <li>A full rep is counted when you bend past the threshold and return to neutral.</li>
-            </ul>
+        <section class="card card--stage" id="coloring-card">
+            <div class="stage-wrap">
+                <div class="stage" aria-label="Coloring stage">
+                    <div id="coloring-grid" class="coloring-grid" aria-label="Coloring grid"></div>
+                </div>
+            </div>
         </section>
     </main>
 

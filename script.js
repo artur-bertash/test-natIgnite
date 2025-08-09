@@ -102,6 +102,11 @@
 
             state.hasPermission = motionPermitted && orientationPermitted;
             elPermissionStatus.textContent = state.hasPermission ? 'Permission granted' : 'Permission denied or unavailable';
+            if (state.hasPermission) {
+                // Collapse permission card to keep UI minimal
+                const card = document.getElementById('permissions-card');
+                if (card) card.style.display = 'none';
+            }
             return state.hasPermission;
         } catch (err) {
             elPermissionStatus.textContent = 'Permission request failed';
@@ -196,6 +201,8 @@
         const ok = await requestPermissionIfNeeded();
         if (ok) {
             elPermissionStatus.textContent = 'Permission granted';
+            const card = document.getElementById('permissions-card');
+            if (card) card.style.display = 'none';
         }
     });
 
