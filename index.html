@@ -5,526 +5,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport"
         content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
-    <meta name="apple-mobile-web-app-capable" content="yes" />
-    <meta name="mobile-web-app-capable" content="yes" />
-    <meta name="theme-color" content="#0f172a" />
-    <title>Recovery Coach — Arm Bends</title>
-    <style>
-        :root {
-            color-scheme: light dark;
-            --bg: #0f172a;
-            --surface: #0b1220;
-            --text: #e5e7eb;
-            --muted: #a3a3a3;
-            --accent: #6d71f9;
-            --ok: #19c58f;
-            --warn: #ffb648;
-            --grid-off: #1f2738;
-            --border: rgba(255, 255, 255, 0.08);
-        }
-
-        @media (prefers-color-scheme: light) {
-            :root {
-                --bg: #f7f8fb;
-                --surface: #ffffff;
-                --text: #0b1220;
-                --muted: #667085;
-                --accent: #4f46e5;
-                --ok: #16a34a;
-                --warn: #f59e0b;
-                --grid-off: #eef2f7;
-                --border: rgba(0, 0, 0, 0.08);
-            }
-        }
-
-        html,
-        body {
-            height: 100%;
-        }
-
-        body {
-            margin: 0;
-            font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Cantarell, Noto Sans, "Helvetica Neue", Arial, "Apple Color Emoji", "Segoe UI Emoji";
-            background: var(--bg);
-            color: var(--text);
-            height: 100dvh;
-            overflow: hidden;
-            -webkit-tap-highlight-color: transparent;
-            padding: env(safe-area-inset-top) 12px env(safe-area-inset-bottom) 12px;
-        }
-
-        .app {
-            height: 100%;
-            display: grid;
-            grid-template-rows: auto 1fr auto;
-            gap: 10px;
-        }
-
-        header {
-            display: grid;
-            place-items: center;
-            padding-top: 2px;
-        }
-
-        .brand {
-            font-size: 20px;
-            font-weight: 700;
-            letter-spacing: 0.3px;
-            margin: 0;
-        }
-
-        .stage {
-            width: 100%;
-            height: 100%;
-            display: grid;
-            grid-template-rows: 1fr auto;
-            gap: 10px;
-        }
-
-        .grid-wrap {
-            display: grid;
-            place-items: center;
-        }
-
-        .grid {
-            width: min(88dvw, 560px);
-            height: min(88dvw, 560px);
-            background: var(--surface);
-            border: 1px solid var(--border);
-            border-radius: 16px;
-            padding: 10px;
-            display: grid;
-            gap: 8px;
-            /* columns are set inline via style="--cols:N" */
-            grid-template-columns: repeat(var(--cols, 5), 1fr);
-        }
-
-        .tile {
-            aspect-ratio: 1/1;
-            border-radius: 10px;
-            background: var(--grid-off);
-            position: relative;
-            overflow: hidden;
-        }
-
-        .tile__fill {
-            position: absolute;
-            inset: 0;
-            opacity: 0;
-            transform: scale(0.9);
-            transition: opacity 180ms ease, transform 220ms ease;
-            background: conic-gradient(from 180deg, var(--accent), var(--ok), var(--accent));
-        }
-
-        .tile--on .tile__fill {
-            opacity: 1;
-            transform: scale(1);
-        }
-
-        .stats {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            gap: 10px;
-        }
-
-        .progress {
-            flex: 1;
-            height: 10px;
-            border-radius: 999px;
-            background: var(--surface);
-            border: 1px solid var(--border);
-            overflow: hidden;
-        }
-
-        .progress__bar {
-            height: 100%;
-            background: linear-gradient(90deg, var(--accent), var(--ok));
-            width: 0%;
-            transition: width 180ms ease;
-        }
-
-        .rep {
-            font-weight: 800;
-            font-variant-numeric: tabular-nums;
-        }
-
-        .muted {
-            color: var(--muted);
-            font-size: 12px;
-        }
-
-        .toolbar {
-            display: grid;
-            grid-template-columns: 1fr 1.2fr 1fr;
-            gap: 8px;
-            align-items: center;
-        }
-
-        .btn {
-            appearance: none;
-            border: 1px solid var(--border);
-            border-radius: 12px;
-            padding: 12px;
-            background: var(--surface);
-            color: var(--text);
-            font-weight: 700;
-            text-align: center;
-        }
-
-        .btn-primary {
-            background: linear-gradient(180deg, var(--accent), color-mix(in oklab, var(--accent) 65%, black));
-            color: white;
-            border: none;
-        }
-
-        .btn-ok {
-            background: linear-gradient(180deg, var(--ok), color-mix(in oklab, var(--ok) 65%, black));
-            color: white;
-            border: none;
-        }
-
-        .btn-warn {
-            background: linear-gradient(180deg, var(--warn), color-mix(in oklab, var(--warn) 65%, black));
-            color: white;
-            border: none;
-        }
-
-        .btn-ghost {
-            background: transparent;
-        }
-
-        .btn:disabled {
-            opacity: 0.5;
-        }
-
-        .stepper {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 10px;
-        }
-
-        .stepper__val {
-            min-width: 36px;
-            text-align: center;
-            font-weight: 800;
-            font-variant-numeric: tabular-nums;
-        }
-
-        /* Permission overlay */
-        .overlay {
-            position: fixed;
-            inset: 0;
-            display: none;
-            place-items: center;
-            background: rgba(0, 0, 0, 0.6);
-            z-index: 20;
-            padding: 24px;
-        }
-
-        .overlay__panel {
-            background: var(--surface);
-            border: 1px solid var(--border);
-            border-radius: 18px;
-            padding: 18px 20px;
-            text-align: center;
-            max-width: 360px;
-        }
-
-        .overlay__panel h2 {
-            margin: 0 0 6px;
-            font-size: 18px;
-        }
-
-        .overlay--show {
-            display: grid;
-        }
-
-        /* rotate overlay removed */
-    </style>
-</head>
-
-<body>
-    <main class="app" aria-live="polite">
-        <header>
-            <h1 class="brand" aria-label="App name">Parmi</h1>
-        </header>
-
-        <section class="stage" aria-label="Exercise stage">
-            <div class="grid-wrap">
-                <div id="grid" class="grid" style="--cols:5" aria-label="Coloring grid"></div>
-            </div>
-            <div class="stats" aria-label="Session stats">
-                <span class="muted">Reps: <span id="stat-reps" class="rep" aria-live="polite">0</span>/<span
-                        id="stat-goal" class="rep">30</span></span>
-                <div class="progress" aria-hidden="true">
-                    <div id="bar" class="progress__bar"></div>
-                </div>
-                <span class="muted" id="tilt" aria-live="polite" aria-label="Tilt degrees">0°</span>
-            </div>
-        </section>
-
-        <nav class="toolbar" aria-label="Controls">
-            <button id="btn-reset" class="btn" aria-label="Reset reps">Reset</button>
-            <button id="btn-primary" class="btn btn-primary" aria-label="Calibrate and start">Calibrate</button>
-            <div class="stepper" aria-label="Target repetitions">
-                <button id="goal-dec" class="btn btn-ghost" aria-label="Decrease goal">−</button>
-                <span id="goal-val" class="stepper__val">30</span>
-                <button id="goal-inc" class="btn btn-ghost" aria-label="Increase goal">+</button>
-            </div>
-        </nav>
-    </main>
-
-    <!-- Permission overlay (iOS needs user gesture) -->
-    <div id="perm" class="overlay perm-overlay">
-        <div class="overlay__panel">
-            <h2>Enable Motion</h2>
-            <p class="muted">Tap to allow motion sensing for rep counting</p>
-        </div>
-    </div>
-
-    <!-- rotate overlay removed -->
-
-    <script>
-        (function () {
-            const elGrid = document.getElementById('grid');
-            const elBar = document.getElementById('bar');
-            const elReps = document.getElementById('stat-reps');
-            const elGoal = document.getElementById('stat-goal');
-            const elTilt = document.getElementById('tilt');
-            const elPrimary = document.getElementById('btn-primary');
-            const elReset = document.getElementById('btn-reset');
-            const elGoalVal = document.getElementById('goal-val');
-            const elGoalDec = document.getElementById('goal-dec');
-            const elGoalInc = document.getElementById('goal-inc');
-            const elPerm = document.getElementById('perm');
-            // no rotate overlay element
-
-            const state = {
-                permission: false,
-                calibrated: false,
-                running: false,
-                reps: 0,
-                goal: 30,
-                // orientation & filtering
-                neutralAngleDeg: 0,
-                filteredAngleDeg: 0,
-                prevAngleDeg: 0,
-                // thresholds
-                thresholdDeg: 30,
-                hysteresisDeg: 6,
-                lastPeakTs: 0,
-                minRepMs: 400,
-                // sensors
-                latestOrientation: { beta: 0, has: false },
-                latestAccel: { x: 0, y: 0, z: 0, has: false },
-                // manual fallback
-                sensorsAvailable: true,
-            };
-
-            function setPrimaryLabel() {
-                if (!state.calibrated) elPrimary.textContent = 'Calibrate';
-                else if (!state.running) elPrimary.textContent = 'Start';
-                else elPrimary.textContent = 'Stop';
-            }
-
-            function clamp(v, a, b) { return Math.max(a, Math.min(b, v)); }
-            function lowPass(prev, next, alpha) { return prev + alpha * (next - prev); }
-            function updateStats() {
-                elReps.textContent = String(state.reps);
-                elGoal.textContent = String(state.goal);
-                elGoalVal.textContent = String(state.goal);
-                elBar.style.width = clamp((state.reps / state.goal) * 100, 0, 100) + '%';
-            }
-            function updateTiltReadout(angle) { elTilt.textContent = String(Math.round(angle)) + '°'; }
-
-            function buildGrid() {
-                elGrid.innerHTML = '';
-                // compute near-square layout for current goal
-                const cols = Math.ceil(Math.sqrt(state.goal));
-                elGrid.style.setProperty('--cols', String(cols));
-                for (let i = 0; i < state.goal; i += 1) {
-                    const div = document.createElement('div');
-                    div.className = 'tile';
-                    div.dataset.index = String(i);
-                    const fill = document.createElement('div');
-                    fill.className = 'tile__fill';
-                    div.appendChild(fill);
-                    elGrid.appendChild(div);
-                }
-            }
-            function colorTiles() {
-                const tiles = elGrid.querySelectorAll('.tile');
-                tiles.forEach((t, idx) => {
-                    if (idx < state.reps) t.classList.add('tile--on'); else t.classList.remove('tile--on');
-                });
-            }
-
-            // Sensors
-            function estimateTiltDeg() {
-                if (state.latestOrientation.has && Number.isFinite(state.latestOrientation.beta)) {
-                    let beta = state.latestOrientation.beta;
-                    if (beta > 180) beta -= 360; if (beta < -180) beta += 360; return beta;
-                }
-                if (state.latestAccel.has) {
-                    const { y, z } = state.latestAccel; const betaRad = Math.atan2(y, z); return betaRad * (180 / Math.PI);
-                }
-                return 0;
-            }
-            function processAngle(angleDeg, ts) {
-                const relative = angleDeg - state.neutralAngleDeg; const absRel = Math.abs(relative);
-                if (state.phase === 'neutral') {
-                    if (absRel >= state.thresholdDeg) state.phase = 'bent';
-                } else if (state.phase === 'bent') {
-                    if (absRel <= state.hysteresisDeg) {
-                        if (ts - state.lastPeakTs >= state.minRepMs) {
-                            state.reps = Math.min(state.goal, state.reps + 1);
-                            state.lastPeakTs = ts; updateStats(); colorTiles();
-                        }
-                        state.phase = 'neutral';
-                    }
-                }
-            }
-
-            function onOrientation(e) {
-                if (!state.running) return;
-                if (typeof e.beta === 'number') state.latestOrientation = { beta: e.beta, has: true };
-            }
-            function onMotion(e) {
-                if (!state.running) return;
-                const g = e.accelerationIncludingGravity;
-                if (g && typeof g.x === 'number' && typeof g.y === 'number' && typeof g.z === 'number') {
-                    state.latestAccel = { x: g.x, y: g.y, z: g.z, has: true };
-                }
-            }
-
-            const alpha = 0.12;
-            function loop(ts) {
-                if (state.running) {
-                    const angle = estimateTiltDeg();
-                    const filtered = lowPass(state.filteredAngleDeg, angle, alpha);
-                    state.prevAngleDeg = state.filteredAngleDeg; state.filteredAngleDeg = filtered;
-                    updateTiltReadout(filtered);
-                    processAngle(filtered, ts || performance.now());
-                }
-                requestAnimationFrame(loop);
-            }
-
-            async function requestPermission() {
-                try {
-                    let granted = true;
-                    const DM = window.DeviceMotionEvent; const DO = window.DeviceOrientationEvent;
-                    if (DM && typeof DM.requestPermission === 'function') {
-                        const r = await DM.requestPermission(); granted = granted && (r === 'granted');
-                    }
-                    if (DO && typeof DO.requestPermission === 'function') {
-                        const r = await DO.requestPermission(); granted = granted && (r === 'granted');
-                    }
-                    state.permission = granted;
-                    state.sensorsAvailable = granted;
-                } catch (e) {
-                    state.permission = false; state.sensorsAvailable = false;
-                }
-            }
-
-            function showPermissionOverlayIfNeeded() {
-                const DM = window.DeviceMotionEvent; const DO = window.DeviceOrientationEvent;
-                const needsGesture = (DM && typeof DM.requestPermission === 'function') || (DO && typeof DO.requestPermission === 'function');
-                if (needsGesture) elPerm.classList.add('overlay--show');
-                else {
-                    // try immediately on Android/desktop
-                    requestPermission().then(() => elPerm.classList.remove('overlay--show')).catch(() => { elPerm.classList.remove('overlay--show'); });
-                }
-            }
-
-            // Controls
-            elPrimary.addEventListener('click', async () => {
-                if (!state.calibrated) {
-                    // Calibrate by averaging small sample at current neutral pose
-                    const samples = []; const N = 24; let i = 0;
-                    const take = () => {
-                        samples.push(estimateTiltDeg()); if (++i < N) setTimeout(take, 12); else {
-                            state.neutralAngleDeg = samples.reduce((a, b) => a + b, 0) / samples.length; state.calibrated = true; setPrimaryLabel();
-                        }
-                    };
-                    take();
-                    return;
-                }
-                if (!state.running) {
-                    if (!state.permission) {
-                        await requestPermission();
-                        // if permission newly granted, attach immediately to ensure events start flowing
-                        if (state.permission && state.sensorsAvailable) {
-                            window.addEventListener('deviceorientation', onOrientation, true);
-                            window.addEventListener('devicemotion', onMotion, true);
-                        } else if (!state.permission) {
-                            // fallback to manual tap mode
-                            state.sensorsAvailable = false;
-                        }
-                    }
-                    // attach listeners if using sensors
-                    if (state.sensorsAvailable) {
-                        window.addEventListener('deviceorientation', onOrientation, true);
-                        window.addEventListener('devicemotion', onMotion, true);
-                    }
-                    state.phase = 'neutral'; state.running = true; setPrimaryLabel();
-                } else {
-                    state.running = false; setPrimaryLabel();
-                }
-            });
-
-            elReset.addEventListener('click', () => {
-                state.reps = 0; state.phase = 'neutral'; state.lastPeakTs = 0; updateStats(); colorTiles();
-            });
-            elGoalDec.addEventListener('click', () => {
-                state.goal = clamp(state.goal - 1, 1, 200); updateStats(); buildGrid(); colorTiles();
-            });
-            elGoalInc.addEventListener('click', () => {
-                state.goal = clamp(state.goal + 1, 1, 200); updateStats(); buildGrid(); colorTiles();
-            });
-
-            // Permission overlay tap handler (iOS)
-            elPerm.addEventListener('click', async () => {
-                try { await requestPermission(); } finally { elPerm.classList.remove('overlay--show'); }
-                // Immediately attach listeners after permission to stimulate iOS event flow
-                if (state.sensorsAvailable) {
-                    window.addEventListener('deviceorientation', onOrientation, true);
-                    window.addEventListener('devicemotion', onMotion, true);
-                }
-            });
-
-            // Orientation overlay visibility
-            // rotate overlay removed; keep no-ops for compatibility
-            function updateRotateOverlay() { }
-            window.addEventListener('orientationchange', updateRotateOverlay);
-            window.addEventListener('resize', updateRotateOverlay);
-
-            // Init
-            function init() {
-                setPrimaryLabel(); updateStats(); buildGrid(); colorTiles();
-                showPermissionOverlayIfNeeded(); updateRotateOverlay(); requestAnimationFrame(loop);
-            }
-            init();
-
-            // Prevent accidental pull-to-refresh on iOS Safari only when overlay is visible
-            document.addEventListener('touchmove', (e) => {
-                const permShown = elPerm.classList.contains('overlay--show');
-                if (permShown) e.preventDefault();
-            }, { passive: false });
-        })();
-    </script>
-</body>
-
-</html>
-<!DOCTYPE html>
-<html lang="en">
-
-<head>
-    <meta charset="UTF-8" />
-    <meta name="viewport"
-        content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
-    <title>Recovery Coach — Arm Bends</title>
+    <title>Recovery Coach — Exercise Selection</title>
     <link rel="stylesheet" href="styles.css" />
 </head>
 
@@ -535,9 +16,82 @@
             <p class="muted">Tap anywhere to enable motion sensing</p>
         </div>
     </div>
-    <main class="app">
+    
+    <!-- Floating background elements -->
+    <div class="floating-elements">
+        <div class="floating-circle circle-1"></div>
+        <div class="floating-circle circle-2"></div>
+        <div class="floating-circle circle-3"></div>
+        <div class="floating-dot dot-1"></div>
+        <div class="floating-dot dot-2"></div>
+        <div class="floating-dot dot-3"></div>
+    </div>
+    
+    <!-- Exercise Selection Page -->
+    <main class="app" id="selection-page">
         <header class="app__header">
-            <h1>Parmi</h1>
+            <div class="header-icon">💪</div>
+            <h1>Recovery Coach</h1>
+            <p class="subtitle">Choose your workout</p>
+        </header>
+
+        <section class="selection-card">
+            <div class="selection-group">
+                <label class="selection-label">
+                    <span class="label-icon">🏃‍♀️</span>
+                    Exercise Type
+                </label>
+                <div class="dropdown-container">
+                    <select id="exercise-select" class="dropdown-select">
+                        <option value="" disabled selected>Select exercise</option>
+                        <optgroup label="Arms">
+                            <option value="lateral-raises">Lateral Raises</option>
+                            <option value="elbow-stretch">Elbow Stretch</option>
+                            <option value="wrist-exercise">Wrist Exercise</option>
+                        </optgroup>
+                        <optgroup label="Legs">
+                            <option value="straight-leg-raise">Straight Leg Raise</option>
+                            <option value="ankle-rom">Ankle Range-of-Motion</option>
+                            <option value="hip-abduction">Hip Abduction</option>
+                        </optgroup>
+                    </select>
+                    <div class="dropdown-arrow">⌄</div>
+                </div>
+            </div>
+
+            <div class="selection-group">
+                <label class="selection-label">
+                    <span class="label-icon">⚡</span>
+                    Intensity Level
+                </label>
+                <div class="dropdown-container">
+                    <select id="intensity-select" class="dropdown-select">
+                        <option value="" disabled selected>Select intensity</option>
+                        <option value="light">Light (10 reps)</option>
+                        <option value="moderate">Moderate (15 reps)</option>
+                        <option value="vigorous">Vigorous (30 reps)</option>
+                    </select>
+                    <div class="dropdown-arrow">⌄</div>
+                </div>
+            </div>
+
+            <button class="start-button" id="btn-start-exercise" disabled>
+                <span class="start-text">Start Now!</span>
+                <span class="start-icon">→</span>
+                <div class="button-particles">
+                    <div class="particle"></div>
+                    <div class="particle"></div>
+                    <div class="particle"></div>
+                </div>
+            </button>
+        </section>
+    </main>
+
+    <!-- Exercise Page (Hidden initially) -->
+    <main class="app" id="exercise-page" style="display: none;">
+        <header class="app__header">
+            <h1>Recovery Coach</h1>
+            <p class="subtitle" id="exercise-subtitle">Exercise in Progress</p>
         </header>
 
         <section class="card card--stage" id="coloring-card">
@@ -555,12 +109,17 @@
                     <span>Target reps</span>
                     <input type="number" id="input-target" min="1" max="200" value="30" inputmode="numeric" />
                 </label>
+                <label class="control">
+                    <span>Threshold (°)</span>
+                    <input type="number" id="input-threshold" min="10" max="60" value="30" inputmode="numeric" />
+                </label>
             </div>
             <div class="buttons">
                 <button class="btn" id="btn-calibrate">Calibrate Neutral</button>
                 <button class="btn btn-success" id="btn-start">Start</button>
                 <button class="btn btn-warning" id="btn-stop" disabled>Stop</button>
                 <button class="btn btn-secondary" id="btn-reset">Reset</button>
+                <button class="btn btn-secondary" id="btn-back-to-selection">Back to Selection</button>
             </div>
             <div class="stats">
                 <div class="stat">

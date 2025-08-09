@@ -1,11 +1,40 @@
 /*
-  Recovery Coach — Arm Bends
+  Recovery Coach — Exercise Selection & Arm Bends
+  - Exercise selection interface with type and intensity options
   - Uses DeviceMotion/DeviceOrientation to infer arm bend repetitions
   - Low-pass filtering + hysteresis to reduce noise and avoid double counts
   - Gamified coloring grid that fills tiles as reps are completed
 */
 
 (function () {
+    // Exercise selection elements
+    const elSelectionPage = document.getElementById('selection-page');
+    const elExercisePage = document.getElementById('exercise-page');
+    const elStartExercise = document.getElementById('btn-start-exercise');
+    const elBackToSelection = document.getElementById('btn-back-to-selection');
+    const elExerciseSubtitle = document.getElementById('exercise-subtitle');
+    
+    // Exercise dropdowns
+    const elExerciseSelect = document.getElementById('exercise-select');
+    const elIntensitySelect = document.getElementById('intensity-select');
+    
+    // Exercise data
+    const exerciseData = {
+        'lateral-raises': { name: 'Lateral Raises', category: 'Arms' },
+        'elbow-stretch': { name: 'Elbow Stretch', category: 'Arms' },
+        'wrist-exercise': { name: 'Wrist Exercise', category: 'Arms' },
+        'straight-leg-raise': { name: 'Straight Leg Raise', category: 'Legs' },
+        'ankle-rom': { name: 'Ankle Range-of-Motion', category: 'Legs' },
+        'hip-abduction': { name: 'Hip Abduction', category: 'Legs' }
+    };
+    
+    const intensityData = {
+        'light': { name: 'Light', reps: 10 },
+        'moderate': { name: 'Moderate', reps: 15 },
+        'vigorous': { name: 'Vigorous', reps: 30 }
+    };
+
+    // Original elements
     const elPermissionStatus = document.getElementById('permission-status');
     const elPermissionOverlay = document.getElementById('permission-overlay');
     const elStart = document.getElementById('btn-start');
@@ -13,6 +42,7 @@
     const elReset = document.getElementById('btn-reset');
     const elCalibrate = document.getElementById('btn-calibrate');
     const elTarget = document.getElementById('input-target');
+    const elThreshold = document.getElementById('input-threshold');
     const elRepCount = document.getElementById('rep-count');
     const elRepGoal = document.getElementById('rep-goal');
     const elTiltReadout = document.getElementById('tilt-readout');
@@ -24,13 +54,15 @@
         hasPermission: false,
         running: false,
         reps: 0,
-        goal: Number(elTarget?.value) || 30,
+        goal: Number(elTarget.value) || 30,
+        selectedExercise: null,
+        selectedIntensity: null,
         // Orientation and filtering
         neutralAngleDeg: 0, // calibrated baseline (beta)
         filteredAngleDeg: 0,
         prevAngleDeg: 0,
         // Hysteresis
-        thresholdDeg: 30,
+        thresholdDeg: Number(elThreshold.value) || 30,
         hysteresisDeg: 6, // must drop below this when returning
         phase: 'neutral', // 'neutral' | 'bent'
         // Timing (optional debounce)
@@ -108,7 +140,7 @@
             }
             return state.hasPermission;
         } catch (err) {
-            if (elPermissionStatus) elPermissionStatus.textContent = 'Permission request failed';
+            elPermissionStatus.textContent = 'Permission request failed';
             return false;
         }
     }
@@ -236,10 +268,11 @@
     });
 
     elStart.addEventListener('click', () => {
-        state.goal = Math.max(1, Math.min(200, Number(elTarget?.value) || 30));
+        state.goal = Math.max(1, Math.min(200, Number(elTarget.value) || 30));
+        state.thresholdDeg = Math.max(10, Math.min(60, Number(elThreshold.value) || 30));
         updateStats();
 
-        if (!state.hasPermission && elPermissionStatus) {
+        if (!state.hasPermission) {
             // Try to start anyway; Android Chrome does not require explicit permission
             elPermissionStatus.textContent = 'Attempting to start without explicit permission…';
         }
@@ -262,6 +295,81 @@
         colorTiles();
     });
 
+    // Exercise selection functions
+    function checkSelectionComplete() {
+        const hasExercise = state.selectedExercise !== null;
+        const hasIntensity = state.selectedIntensity !== null;
+        elStartExercise.disabled = !(hasExercise && hasIntensity);
+    }
+
+    function updateExerciseSubtitle() {
+        if (state.selectedExercise && state.selectedIntensity) {
+            const exercise = exerciseData[state.selectedExercise];
+            const intensity = intensityData[state.selectedIntensity];
+            elExerciseSubtitle.textContent = `${exercise.name} - ${intensity.name} (${intensity.reps} reps)`;
+        } else {
+            elExerciseSubtitle.textContent = 'Exercise in Progress';
+        }
+    }
+
+    function showExercisePage() {
+        elSelectionPage.style.display = 'none';
+        elExercisePage.style.display = 'grid';
+        
+        // Update the target reps based on selected intensity
+        if (state.selectedIntensity) {
+            const intensity = intensityData[state.selectedIntensity];
+            state.goal = intensity.reps;
+            elTarget.value = intensity.reps;
+            updateStats();
+            buildGrid(state.goal);
+            colorTiles();
+        }
+        
+        updateExerciseSubtitle();
+        
+        // Request motion permissions when entering exercise page
+        showPermissionOverlayIfNeeded();
+    }
+
+    function showSelectionPage() {
+        elExercisePage.style.display = 'none';
+        elSelectionPage.style.display = 'grid';
+        
+        // Reset exercise state
+        state.reps = 0;
+        state.phase = 'neutral';
+        state.lastPeakTs = 0;
+        updateStats();
+        colorTiles();
+    }
+
+    // Exercise selection event listeners
+    elExerciseSelect.addEventListener('change', (e) => {
+        state.selectedExercise = e.target.value;
+        checkSelectionComplete();
+    });
+
+    elIntensitySelect.addEventListener('change', (e) => {
+        state.selectedIntensity = e.target.value;
+        checkSelectionComplete();
+    });
+
+    elStartExercise.addEventListener('click', () => {
+        showExercisePage();
+    });
+
+    elBackToSelection.addEventListener('click', () => {
+        showSelectionPage();
+    });
+
+    // Fix missing threshold event listener
+    if (elThreshold) {
+        elThreshold.addEventListener('input', () => {
+            state.thresholdDeg = Math.max(10, Math.min(60, Number(elThreshold.value) || 30));
+        });
+    }
+
     // Init
     function init() {
         buildGrid(state.goal);
@@ -269,11 +377,14 @@
         colorTiles();
         requestAnimationFrame(tick);
         showPermissionOverlayIfNeeded();
+        
+        // Start with selection page
+        showSelectionPage();
     }
 
     // Rebuild grid when target changes (only when idle to keep UX predictable)
     elTarget.addEventListener('change', () => {
-        const newGoal = Math.max(1, Math.min(200, Number(elTarget?.value) || 30));
+        const newGoal = Math.max(1, Math.min(200, Number(elTarget.value) || 30));
         state.goal = newGoal;
         buildGrid(state.goal);
         // Re-apply colored tiles based on current reps
@@ -281,7 +392,16 @@
         updateStats();
     });
 
-    // iOS visual hint handled via overlay
+    // Keep threshold state updated live
+    elThreshold.addEventListener('input', () => {
+        state.thresholdDeg = Math.max(10, Math.min(60, Number(elThreshold.value) || 30));
+    });
+
+    // iOS visual hint
+    const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+    if (isIOS) {
+        elPermissionStatus.textContent = 'iOS requires tapping Enable Motion to start';
+    }
 
     init();
 })();
