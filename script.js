@@ -37,6 +37,7 @@
     // Original elements
     const elPermissionStatus = document.getElementById('permission-status');
     const elPermissionOverlay = document.getElementById('permission-overlay');
+    const elMotionStatus = document.getElementById('motion-status');
     const elStart = document.getElementById('btn-start');
     const elStop = document.getElementById('btn-stop');
     const elReset = document.getElementById('btn-reset');
@@ -94,6 +95,16 @@
 
     function updateTiltReadout(angleDeg) {
         elTiltReadout.textContent = String(Math.round(angleDeg));
+    }
+
+    function updateMotionStatus(isActive) {
+        if (elMotionStatus) {
+            elMotionStatus.className = `status-indicator ${isActive ? 'active' : 'inactive'}`;
+            const statusText = elMotionStatus.querySelector('.status-text');
+            if (statusText) {
+                statusText.textContent = isActive ? 'Motion Detection Active' : 'Motion Detection Inactive';
+            }
+        }
     }
 
     function colorTiles() {
@@ -197,31 +208,53 @@
     }
 
     // Event listeners
+    let lastMotionTime = 0;
+    let motionActive = false;
+
     function onOrientation(event) {
-        if (!state.running) return;
         if (typeof event.beta === 'number') {
             latestOrientation = { beta: event.beta, has: true };
+            lastMotionTime = Date.now();
+            if (!motionActive) {
+                motionActive = true;
+                updateMotionStatus(true);
+            }
         }
     }
 
     function onMotion(event) {
-        if (!state.running) return;
         const accG = event.accelerationIncludingGravity;
         if (accG && typeof accG.x === 'number' && typeof accG.y === 'number' && typeof accG.z === 'number') {
             latestAccel = { x: accG.x, y: accG.y, z: accG.z, has: true };
+            lastMotionTime = Date.now();
+            if (!motionActive) {
+                motionActive = true;
+                updateMotionStatus(true);
+            }
         }
     }
+
+    // Check motion status periodically
+    setInterval(() => {
+        const timeSinceLastMotion = Date.now() - lastMotionTime;
+        if (timeSinceLastMotion > 2000 && motionActive) { // 2 seconds timeout
+            motionActive = false;
+            updateMotionStatus(false);
+        }
+    }, 1000);
 
     // Frame loop to compute filtered angle and detect reps at ~60Hz (or browser rate)
     const alpha = 0.12; // smoothing factor for low-pass
     function tick(ts) {
-        if (state.running) {
-            const angle = estimateTiltDeg();
-            const filtered = lowPassFilter(state.filteredAngleDeg, angle, alpha);
-            state.prevAngleDeg = state.filteredAngleDeg;
-            state.filteredAngleDeg = filtered;
-            updateTiltReadout(filtered);
+        // Always update tilt readout, even when not running
+        const angle = estimateTiltDeg();
+        const filtered = lowPassFilter(state.filteredAngleDeg, angle, alpha);
+        state.prevAngleDeg = state.filteredAngleDeg;
+        state.filteredAngleDeg = filtered;
+        updateTiltReadout(filtered);
 
+        // Only process reps when running
+        if (state.running) {
             processAngle(filtered, typeof ts === 'number' ? ts : performance.now());
         }
         requestAnimationFrame(tick);
@@ -274,12 +307,9 @@
 
         if (!state.hasPermission) {
             // Try to start anyway; Android Chrome does not require explicit permission
-            elPermissionStatus.textContent = 'Attempting to start without explicit permission…';
+            console.log('Attempting to start without explicit permission…');
         }
 
-        // Attach listeners once
-        window.addEventListener('deviceorientation', onOrientation, true);
-        window.addEventListener('devicemotion', onMotion, true);
         setRunning(true);
     });
 
@@ -375,6 +405,11 @@
         buildGrid(state.goal);
         updateStats();
         colorTiles();
+        
+        // Always attach motion listeners
+        window.addEventListener('deviceorientation', onOrientation, true);
+        window.addEventListener('devicemotion', onMotion, true);
+        
         requestAnimationFrame(tick);
         showPermissionOverlayIfNeeded();
         
