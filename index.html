@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
+    <title>Recovery Coach — Arm Bends</title>
+    <link rel="stylesheet" href="styles.css" />
+</head>
+
+<body>
+    <main class="app">
+        <header class="app__header">
+            <h1>Recovery Coach</h1>
+            <p class="subtitle">Arm bends tracker with motion sensing</p>
+        </header>
+
+        <section class="card" id="permissions-card">
+            <h2>Motion Access</h2>
+            <p>
+                This app uses your phone's motion sensors to count arm bends. Hold your phone in your hand and move
+                naturally.
+            </p>
+            <button class="btn btn-primary" id="btn-permission">Enable Motion</button>
+            <p class="muted small" id="permission-status">Permission not requested</p>
+        </section>
+
+        <section class="card" id="controls-card">
+            <h2>Session</h2>
+            <div class="controls">
+                <label class="control">
+                    <span>Target reps</span>
+                    <input type="number" id="input-target" min="1" max="200" value="30" inputmode="numeric" />
+                </label>
+                <label class="control">
+                    <span>Sensitivity (°)</span>
+                    <input type="range" id="input-threshold" min="10" max="60" value="30" />
+                </label>
+            </div>
+            <div class="buttons">
+                <button class="btn" id="btn-calibrate">Calibrate Neutral</button>
+                <button class="btn btn-success" id="btn-start">Start</button>
+                <button class="btn btn-warning" id="btn-stop" disabled>Stop</button>
+                <button class="btn btn-secondary" id="btn-reset">Reset</button>
+            </div>
+            <div class="stats">
+                <div class="stat">
+                    <div class="stat__label">Reps</div>
+                    <div class="stat__value" id="rep-count">0</div>
+                </div>
+                <div class="stat">
+                    <div class="stat__label">Goal</div>
+                    <div class="stat__value" id="rep-goal">30</div>
+                </div>
+                <div class="stat">
+                    <div class="stat__label">Tilt (°)</div>
+                    <div class="stat__value" id="tilt-readout">0</div>
+                </div>
+            </div>
+            <div class="progress">
+                <div class="progress__bar" id="progress-bar" style="width: 0%"></div>
+            </div>
+        </section>
+
+        <section class="card" id="coloring-card">
+            <h2>Color the Picture</h2>
+            <p class="muted small">Each arm bend colors a piece. Complete all pieces to finish the picture.</p>
+            <div id="coloring-grid" class="coloring-grid" aria-label="Coloring grid"></div>
+        </section>
+
+        <section class="card" id="help-card">
+            <h2>Tips</h2>
+            <ul class="tips">
+                <li>Hold your phone comfortably in your hand while bending your arm.</li>
+                <li>Tap "Calibrate Neutral" while holding your arm relaxed at the starting position.</li>
+                <li>A full rep is counted when you bend past the threshold and return to neutral.</li>
+            </ul>
+        </section>
+    </main>
+
+    <script src="script.js"></script>
+</body>
+
+</html>
