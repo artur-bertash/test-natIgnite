@@ -13,7 +13,6 @@
     const elReset = document.getElementById('btn-reset');
     const elCalibrate = document.getElementById('btn-calibrate');
     const elTarget = document.getElementById('input-target');
-    const elThreshold = document.getElementById('input-threshold');
     const elRepCount = document.getElementById('rep-count');
     const elRepGoal = document.getElementById('rep-goal');
     const elTiltReadout = document.getElementById('tilt-readout');
@@ -25,13 +24,13 @@
         hasPermission: false,
         running: false,
         reps: 0,
-        goal: Number(elTarget.value) || 30,
+        goal: Number(elTarget?.value) || 30,
         // Orientation and filtering
         neutralAngleDeg: 0, // calibrated baseline (beta)
         filteredAngleDeg: 0,
         prevAngleDeg: 0,
         // Hysteresis
-        thresholdDeg: Number(elThreshold.value) || 30,
+        thresholdDeg: 30,
         hysteresisDeg: 6, // must drop below this when returning
         phase: 'neutral', // 'neutral' | 'bent'
         // Timing (optional debounce)
@@ -109,7 +108,7 @@
             }
             return state.hasPermission;
         } catch (err) {
-            elPermissionStatus.textContent = 'Permission request failed';
+            if (elPermissionStatus) elPermissionStatus.textContent = 'Permission request failed';
             return false;
         }
     }
@@ -237,11 +236,10 @@
     });
 
     elStart.addEventListener('click', () => {
-        state.goal = Math.max(1, Math.min(200, Number(elTarget.value) || 30));
-        state.thresholdDeg = Math.max(10, Math.min(60, Number(elThreshold.value) || 30));
+        state.goal = Math.max(1, Math.min(200, Number(elTarget?.value) || 30));
         updateStats();
 
-        if (!state.hasPermission) {
+        if (!state.hasPermission && elPermissionStatus) {
             // Try to start anyway; Android Chrome does not require explicit permission
             elPermissionStatus.textContent = 'Attempting to start without explicit permission…';
         }
@@ -275,7 +273,7 @@
 
     // Rebuild grid when target changes (only when idle to keep UX predictable)
     elTarget.addEventListener('change', () => {
-        const newGoal = Math.max(1, Math.min(200, Number(elTarget.value) || 30));
+        const newGoal = Math.max(1, Math.min(200, Number(elTarget?.value) || 30));
         state.goal = newGoal;
         buildGrid(state.goal);
         // Re-apply colored tiles based on current reps
@@ -283,16 +281,7 @@
         updateStats();
     });
 
-    // Keep threshold state updated live
-    elThreshold.addEventListener('input', () => {
-        state.thresholdDeg = Math.max(10, Math.min(60, Number(elThreshold.value) || 30));
-    });
-
-    // iOS visual hint
-    const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
-    if (isIOS) {
-        elPermissionStatus.textContent = 'iOS requires tapping Enable Motion to start';
-    }
+    // iOS visual hint handled via overlay
 
     init();
 })();
