@@ -212,7 +212,7 @@
             font-variant-numeric: tabular-nums;
         }
 
-        /* Permission + landscape overlays */
+        /* Permission overlay */
         .overlay {
             position: fixed;
             inset: 0;
@@ -241,11 +241,7 @@
             display: grid;
         }
 
-        @media (orientation: landscape) {
-            .rotate-overlay.overlay--show {
-                display: grid;
-            }
-        }
+        /* rotate overlay removed */
     </style>
 </head>
 
@@ -288,13 +284,7 @@
         </div>
     </div>
 
-    <!-- Rotate overlay for landscape -->
-    <div id="rotate" class="overlay rotate-overlay">
-        <div class="overlay__panel">
-            <h2>Rotate your phone</h2>
-            <p class="muted">This experience works in portrait mode</p>
-        </div>
-    </div>
+    <!-- rotate overlay removed -->
 
     <script>
         (function () {
@@ -309,7 +299,7 @@
             const elGoalDec = document.getElementById('goal-dec');
             const elGoalInc = document.getElementById('goal-inc');
             const elPerm = document.getElementById('perm');
-            const elRotate = document.getElementById('rotate');
+            // no rotate overlay element
 
             const state = {
                 permission: false,
@@ -464,7 +454,11 @@
                 if (!state.running) {
                     if (!state.permission) {
                         await requestPermission();
-                        if (!state.permission) {
+                        // if permission newly granted, attach immediately to ensure events start flowing
+                        if (state.permission && state.sensorsAvailable) {
+                            window.addEventListener('deviceorientation', onOrientation, true);
+                            window.addEventListener('devicemotion', onMotion, true);
+                        } else if (!state.permission) {
                             // fallback to manual tap mode
                             state.sensorsAvailable = false;
                         }
@@ -493,17 +487,16 @@
             // Permission overlay tap handler (iOS)
             elPerm.addEventListener('click', async () => {
                 try { await requestPermission(); } finally { elPerm.classList.remove('overlay--show'); }
+                // Immediately attach listeners after permission to stimulate iOS event flow
+                if (state.sensorsAvailable) {
+                    window.addEventListener('deviceorientation', onOrientation, true);
+                    window.addEventListener('devicemotion', onMotion, true);
+                }
             });
 
             // Orientation overlay visibility
-            function isPortrait() {
-                // More reliable on iOS Safari than matchMedia in some cases
-                return window.innerHeight >= window.innerWidth;
-            }
-            function updateRotateOverlay() {
-                if (isPortrait()) elRotate.classList.remove('overlay--show');
-                else elRotate.classList.add('overlay--show');
-            }
+            // rotate overlay removed; keep no-ops for compatibility
+            function updateRotateOverlay() { }
             window.addEventListener('orientationchange', updateRotateOverlay);
             window.addEventListener('resize', updateRotateOverlay);
 
@@ -517,8 +510,7 @@
             // Prevent accidental pull-to-refresh on iOS Safari only when overlay is visible
             document.addEventListener('touchmove', (e) => {
                 const permShown = elPerm.classList.contains('overlay--show');
-                const rotShown = elRotate.classList.contains('overlay--show');
-                if (permShown || rotShown) e.preventDefault();
+                if (permShown) e.preventDefault();
             }, { passive: false });
         })();
     </script>
