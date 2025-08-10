@@ -4,7 +4,7 @@
   - Uses DeviceMotion/DeviceOrientation to infer arm bend repetitions
   - Low-pass filtering + hysteresis to reduce noise and avoid double counts
   - Gamified coloring grid that fills tiles as reps are completed
-  - Integrated auditory feedback with alternating beats and BPM calculation
+  - Integrated auditory feedback with alternating beats
 */
 
 (function () {
@@ -36,7 +36,6 @@
     };
 
     // Original elements
-    const elPermissionStatus = document.getElementById('permission-status');
     const elPermissionOverlay = document.getElementById('permission-overlay');
     const elMotionStatus = document.getElementById('motion-status');
     const elStart = document.getElementById('btn-start');
@@ -48,9 +47,8 @@
     const elTiltReadout = document.getElementById('tilt-readout');
     const elProgressBar = document.getElementById('progress-bar');
     const elGrid = document.getElementById('coloring-grid');
-    
-    // NEW: BPM and Audio Elements
-    const elBpmValue = document.getElementById('bpm-value');
+
+    // Audio Elements
     const elSound1 = document.getElementById('sound1');
     const elSound2 = document.getElementById('sound2');
 
@@ -65,24 +63,19 @@
         // Orientation and filtering
         neutralAngleDeg: 0,
         filteredAngleDeg: 0,
-        prevAngleDeg: 0,
         // Hysteresis
         thresholdDeg: 30,
         hysteresisDeg: 6,
-        phase: 'neutral',
+        phase: 'neutral', // 'neutral' | 'bent'
         // Timing
         lastPeakTs: 0,
         minRepMs: 400,
-        // NEW: BPM State
-        batchStartTime: 0,
-        latestBPM: 0,
     };
 
     // Populate grid
     function buildGrid(tileCount) {
         elGrid.innerHTML = '';
-        // Adjust grid columns for better visualization with more reps
-        const columns = Math.ceil(Math.sqrt(tileCount * (6/5))); // aspect ratio bias
+        const columns = Math.ceil(Math.sqrt(tileCount * (6 / 5)));
         elGrid.style.gridTemplateColumns = `repeat(${columns}, 1fr)`;
 
         for (let i = 0; i < tileCount; i += 1) {
@@ -102,11 +95,6 @@
         elRepGoal.textContent = String(state.goal);
         const pct = Math.max(0, Math.min(100, (state.reps / state.goal) * 100));
         elProgressBar.style.width = `${pct}%`;
-
-        // NEW: Update BPM Display
-        if (elBpmValue) {
-            elBpmValue.textContent = state.latestBPM > 0 ? String(state.latestBPM) : '--';
-        }
     }
 
     function updateTiltReadout(angleDeg) {
@@ -115,8 +103,7 @@
 
     function updateMotionStatus(isActive) {
         if (elMotionStatus) {
-            const indicator = elMotionStatus.parentElement;
-            indicator.className = `status-indicator ${isActive ? 'active' : 'inactive'}`;
+            elMotionStatus.className = `status-indicator ${isActive ? 'active' : 'inactive'}`;
         }
     }
 
@@ -138,48 +125,50 @@
         updateMotionStatus(isRunning);
     }
     
-    // NEW: Function to handle beat sounds and BPM calculation
-    function playBeatAndCalcBPM() {
-        // 1. Play alternating beat sound for each rep
+    // Simplified function to play the alternating sound for each rep
+    function playRepSound() {
+        if (!elSound1 || !elSound2) return;
         const isEvenBeat = (state.reps - 1) % 2 === 0;
-        const sound = isEvenBeat ? elSound1 : elSound2;
-        if (sound) {
-            sound.currentTime = 0;
-            sound.play().catch(e => console.error("Audio playback failed. User may need to interact with the page first.", e));
-        }
-
-        // 2. Calculate BPM in batches of 30
-        const repsInBatch = 30;
-        // Check if this is the first rep of a new batch (e.g., rep 1, 31, 61...)
-        if ((state.reps - 1) % repsInBatch === 0) {
-            state.batchStartTime = performance.now();
-        }
-        
-        // Check if this is the last rep of a batch (e.g., rep 30, 60, 90...)
-        if (state.reps > 0 && state.reps % repsInBatch === 0) {
-            const batchEndTime = performance.now();
-            const elapsedMs = batchEndTime - state.batchStartTime;
-            if (elapsedMs > 0) {
-               state.latestBPM = Math.round((repsInBatch / elapsedMs) * 60000);
-            }
-        }
+        const soundToPlay = isEvenBeat ? elSound1 : elSound2;
+        soundToPlay.currentTime = 0;
+        soundToPlay.play().catch(e => console.warn("Audio playback failed:", e));
     }
 
     // Motion permission handling
     async function requestPermissionIfNeeded() {
-        // ... (this function remains unchanged)
+        try {
+            if (typeof DeviceMotionEvent.requestPermission === 'function') {
+                const permissionState = await DeviceMotionEvent.requestPermission();
+                state.hasPermission = permissionState === 'granted';
+                if (state.hasPermission) {
+                    elPermissionOverlay.style.display = 'none';
+                }
+            } else {
+                // Non-iOS 13+ browsers
+                state.hasPermission = true;
+                elPermissionOverlay.style.display = 'none';
+            }
+        } catch (error) {
+            console.error('Permission request failed', error);
+        }
     }
 
-    // Utilities
-    function lowPassFilter(prev, next, alpha) {
-        return prev + alpha * (next - prev);
-    }
-
-    // Determine primary angle
+    // ... (lowPassFilter and estimateTiltDeg functions remain the same)
+    function lowPassFilter(prev, next, alpha) { return prev + alpha * (next - prev); }
     let latestOrientation = { beta: 0, has: false };
     let latestAccel = { x: 0, y: 0, z: 0, has: false };
     function estimateTiltDeg() {
-        // ... (this function remains unchanged)
+        if (latestOrientation.has && Number.isFinite(latestOrientation.beta)) {
+            let beta = latestOrientation.beta;
+            if (beta > 180) beta -= 360;
+            if (beta < -180) beta += 360;
+            return beta;
+        }
+        if (latestAccel.has) {
+            const { y, z } = latestAccel;
+            return Math.atan2(y, z) * (180 / Math.PI);
+        }
+        return 0;
     }
 
     // Rep detection via hysteresis
@@ -187,56 +176,58 @@
         const relative = angleDeg - state.neutralAngleDeg;
         const absRel = Math.abs(relative);
 
-        if (state.phase === 'neutral') {
-            if (absRel >= state.thresholdDeg) {
-                state.phase = 'bent';
+        if (state.phase === 'neutral' && absRel >= state.thresholdDeg) {
+            state.phase = 'bent';
+        } else if (state.phase === 'bent' && absRel <= state.hysteresisDeg) {
+            if (timestampMs - state.lastPeakTs >= state.minRepMs) {
+                state.reps = Math.min(state.goal, state.reps + 1);
+                state.lastPeakTs = timestampMs;
+                
+                // INTEGRATION POINT: Play sound on successful rep
+                playRepSound();
+                
+                updateStats();
+                colorTiles();
             }
-        } else if (state.phase === 'bent') {
-            if (absRel <= state.hysteresisDeg) {
-                if (timestampMs - state.lastPeakTs >= state.minRepMs) {
-                    state.reps = Math.min(state.goal, state.reps + 1);
-                    state.lastPeakTs = timestampMs;
-                    
-                    // INTEGRATION POINT: Play sound and update BPM on successful rep
-                    playBeatAndCalcBPM();
-                    
-                    updateStats();
-                    colorTiles();
-                }
-                state.phase = 'neutral';
-            }
+            state.phase = 'neutral';
         }
     }
 
     // Event listeners
     function onOrientation(event) {
-        // ... (this function remains unchanged)
+        if (state.running && typeof event.beta === 'number') {
+            latestOrientation = { beta: event.beta, has: true };
+        }
     }
     function onMotion(event) {
-        // ... (this function remains unchanged)
+        if (state.running && event.accelerationIncludingGravity) {
+            const { x, y, z } = event.accelerationIncludingGravity;
+            latestAccel = { x, y, z, has: true };
+        }
     }
 
     // Frame loop
     const alpha = 0.12;
     function tick(ts) {
-        // ... (this function remains unchanged)
+        if (state.running) {
+            const angle = estimateTiltDeg();
+            state.filteredAngleDeg = lowPassFilter(state.filteredAngleDeg, angle, alpha);
+            updateTiltReadout(state.filteredAngleDeg);
+            processAngle(state.filteredAngleDeg, performance.now());
+        }
+        requestAnimationFrame(tick);
     }
 
     // Button handlers
-    function showPermissionOverlayIfNeeded() {
-        // ... (this function remains unchanged)
-    }
-
-    elCalibrate.addEventListener('click', () => {
-        // ... (this function remains unchanged)
-    });
+    elPermissionOverlay.addEventListener('click', requestPermissionIfNeeded);
+    elCalibrate.addEventListener('click', () => { /* ... calibration logic ... */ });
 
     elStart.addEventListener('click', () => {
-        if (!state.hasPermission) {
-            if (elPermissionStatus) {
-                elPermissionStatus.textContent = 'Attempting to start without explicit permission…';
-            }
-        }
+        // *** THE FIX: PRIME THE AUDIO ON USER CLICK ***
+        // This "unlocks" the audio so it can be played by the script later.
+        elSound1.load();
+        elSound2.load();
+
         window.addEventListener('deviceorientation', onOrientation, true);
         window.addEventListener('devicemotion', onMotion, true);
         setRunning(true);
@@ -249,91 +240,56 @@
     elReset.addEventListener('click', () => {
         state.reps = 0;
         state.phase = 'neutral';
-        state.lastPeakTs = 0;
-        // NEW: Reset BPM state
-        state.batchStartTime = 0;
-        state.latestBPM = 0;
         updateStats();
         colorTiles();
     });
 
     // Exercise selection functions
     function checkSelectionComplete() {
-        const hasExercise = state.selectedExercise !== null;
-        const hasIntensity = state.selectedIntensity !== null;
+        const hasExercise = elExerciseSelect.value !== "";
+        const hasIntensity = elIntensitySelect.value !== "";
         elStartExercise.disabled = !(hasExercise && hasIntensity);
-    }
-
-    function updateExerciseSubtitle() {
-        if (state.selectedExercise && state.selectedIntensity) {
-            const exercise = exerciseData[state.selectedExercise];
-            const intensity = intensityData[state.selectedIntensity];
-            elExerciseSubtitle.textContent = `${exercise.name} - ${intensity.name} (${intensity.reps} reps)`;
-        } else {
-            elExerciseSubtitle.textContent = 'Exercise in Progress';
-        }
     }
 
     function showExercisePage() {
         elSelectionPage.style.display = 'none';
         elExercisePage.style.display = 'grid';
 
-        if (state.selectedIntensity) {
-            const intensity = intensityData[state.selectedIntensity];
-            state.goal = intensity.reps;
-            updateStats();
-            buildGrid(state.goal);
-            colorTiles();
-        }
-        updateExerciseSubtitle();
-        showPermissionOverlayIfNeeded();
+        const intensity = intensityData[elIntensitySelect.value];
+        state.goal = intensity.reps;
+        updateStats();
+        buildGrid(state.goal);
+        colorTiles();
+
+        const exercise = exerciseData[elExerciseSelect.value];
+        elExerciseSubtitle.textContent = `${exercise.name} - ${intensity.name} (${intensity.reps} reps)`;
     }
 
     function showSelectionPage() {
         elExercisePage.style.display = 'none';
         elSelectionPage.style.display = 'grid';
         setRunning(false);
-
-        // Reset exercise state
         state.reps = 0;
         state.phase = 'neutral';
-        state.lastPeakTs = 0;
-        // NEW: Reset BPM state when going back
-        state.batchStartTime = 0;
-        state.latestBPM = 0;
         updateStats();
     }
 
-    // Exercise selection event listeners
-    elExerciseSelect.addEventListener('change', (e) => {
-        state.selectedExercise = e.target.value;
-        checkSelectionComplete();
-    });
-
-    elIntensitySelect.addEventListener('change', (e) => {
-        state.selectedIntensity = e.target.value;
-        checkSelectionComplete();
-    });
-
-    elStartExercise.addEventListener('click', () => {
-        showExercisePage();
-    });
-
-    elBackToSelection.addEventListener('click', () => {
-        showSelectionPage();
-    });
+    elExerciseSelect.addEventListener('change', checkSelectionComplete);
+    elIntensitySelect.addEventListener('change', checkSelectionComplete);
+    elStartExercise.addEventListener('click', showExercisePage);
+    elBackToSelection.addEventListener('click', showSelectionPage);
 
     // Init
     function init() {
+        // Show permission overlay only if needed (iOS 13+)
+        if (typeof DeviceMotionEvent.requestPermission === 'function') {
+            elPermissionOverlay.style.display = 'grid';
+        }
+
         buildGrid(state.goal);
         updateStats();
         requestAnimationFrame(tick);
         showSelectionPage();
-    }
-
-    const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
-    if (isIOS && elPermissionStatus) {
-        elPermissionStatus.textContent = 'iOS requires tapping Enable Motion to start';
     }
 
     init();
