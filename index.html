@@ -108,7 +108,6 @@
                     <h2>Session</h2>
                 </div>
                
-
                 <!-- Compact Motion Status Indicator -->
                 <div class="motion-status motion-status--tiny" title="Motion Detection">
                     <div class="status-indicator" id="motion-status">
@@ -117,8 +116,6 @@
                 </div>
             </div>
 
-
-            <!-- Removed target/threshold inputs to simplify UI; functionality is preserved via defaults and intensity selection -->
             <div class="buttons">
                 <button class="btn" id="btn-calibrate">Calibrate Neutral</button>
                 <button class="btn btn-success" id="btn-start">Start</button>
@@ -135,6 +132,11 @@
                     <div class="stat__label">Goal</div>
                     <div class="stat__value" id="rep-goal">30</div>
                 </div>
+                <!-- NEW: BPM STAT -->
+                <div class="stat">
+                    <div class="stat__label">BPM</div>
+                    <div class="stat__value" id="bpm-value">--</div>
+                </div>
                 <div class="stat">
                     <div class="stat__label">Tilt (°)</div>
                     <div class="stat__value" id="tilt-readout">0</div>
@@ -145,6 +147,10 @@
             </div>
         </section>
     </main>
+
+    <!-- NEW: AUDIO ELEMENTS FOR BEATS -->
+    <audio id="sound1" src="sounds/click.wav" preload="auto"></audio>
+    <audio id="sound2" src="sounds/clack.wav" preload="auto"></audio>
 
     <script src="script.js"></script>
 </body>

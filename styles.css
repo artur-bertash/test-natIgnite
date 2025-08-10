@@ -172,11 +172,11 @@ input[type="range"] {
 
 .stats {
     display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 8px;
-    margin-top: 8px;
+    /* Changed from repeat(3, 1fr) to repeat(auto-fit, minmax(80px, 1fr)) for better wrapping */
+    grid-template-columns: repeat(auto-fit, minmax(80px, 1fr));
+    gap: 12px;
+    margin-top: 16px;
 }
-
 .stat {
     padding: 10px;
     border: 1px solid var(--soft-border);
