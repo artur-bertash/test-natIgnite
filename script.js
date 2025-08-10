@@ -1,5 +1,5 @@
 /*
-  Recovery Coach — Exercise Selection & Arm Bends
+  Parmi — Exercise Selection & Arm Bends
   - Exercise selection interface with type and intensity options
   - Uses DeviceMotion/DeviceOrientation to infer arm bend repetitions
   - Low-pass filtering + hysteresis to reduce noise and avoid double counts
@@ -95,15 +95,6 @@
 
     function updateTiltReadout(angleDeg) {
         elTiltReadout.textContent = String(Math.round(angleDeg));
-        
-        // Add visual indicator for motion status
-        if (motionActive) {
-            elTiltReadout.style.color = 'var(--success)';
-            elTiltReadout.style.fontWeight = '700';
-        } else {
-            elTiltReadout.style.color = 'var(--muted)';
-            elTiltReadout.style.fontWeight = '400';
-        }
     }
 
     function updateMotionStatus(isActive) {
@@ -131,50 +122,40 @@
         state.running = isRunning;
         elStart.disabled = isRunning;
         elStop.disabled = !isRunning;
+        updateMotionStatus(isRunning);
     }
 
     // Motion permission handling (iOS 13+ requires user gesture)
     async function requestPermissionIfNeeded() {
         try {
-            console.log('Requesting motion permissions...');
             const anyDevMotion = window.DeviceMotionEvent;
             const anyDevOrient = window.DeviceOrientationEvent;
 
             let motionPermitted = true;
-            let orientationPermitted = true;
-
-            // Check if permission APIs exist (iOS 13+)
             if (anyDevMotion && typeof anyDevMotion.requestPermission === 'function') {
-                console.log('Requesting DeviceMotion permission...');
                 const res = await anyDevMotion.requestPermission();
                 motionPermitted = res === 'granted';
-                console.log('DeviceMotion permission result:', res);
-            } else {
-                console.log('DeviceMotion permission API not available (likely Android or older iOS)');
             }
 
+            let orientationPermitted = true;
             if (anyDevOrient && typeof anyDevOrient.requestPermission === 'function') {
-                console.log('Requesting DeviceOrientation permission...');
                 const res = await anyDevOrient.requestPermission();
                 orientationPermitted = res === 'granted';
-                console.log('DeviceOrientation permission result:', res);
-            } else {
-                console.log('DeviceOrientation permission API not available (likely Android or older iOS)');
             }
 
-            // On Android and older iOS, permissions are typically granted by default
             state.hasPermission = motionPermitted && orientationPermitted;
-            console.log('Final permission status:', state.hasPermission);
-            
+            if (elPermissionStatus) {
+                elPermissionStatus.textContent = state.hasPermission ? 'Permission granted' : 'Permission denied or unavailable';
+            }
             if (state.hasPermission && elPermissionOverlay) {
                 elPermissionOverlay.style.display = 'none';
             }
             return state.hasPermission;
         } catch (err) {
-            console.error('Permission request failed:', err);
-            // On error, assume permissions are available (common on Android)
-            state.hasPermission = true;
-            return true;
+            if (elPermissionStatus) {
+                elPermissionStatus.textContent = 'Permission request failed';
+            }
+            return false;
         }
     }
 
@@ -190,31 +171,21 @@
     let latestAccel = { x: 0, y: 0, z: 0, has: false };
 
     function estimateTiltDeg() {
-        // Try orientation data first (most accurate for tilt)
-        if (latestOrientation.has && Number.isFinite(latestOrientation.beta) && !isNaN(latestOrientation.beta)) {
+        if (latestOrientation.has && Number.isFinite(latestOrientation.beta)) {
             // Clamp beta to [-180, 180]
             let beta = latestOrientation.beta;
             if (beta > 180) beta -= 360;
             if (beta < -180) beta += 360;
-            console.log('Using orientation beta for tilt:', beta);
             return beta;
         }
-        
-        // Fallback to accelerometer data
-        if (latestAccel.has && Number.isFinite(latestAccel.y) && Number.isFinite(latestAccel.z) &&
-            !isNaN(latestAccel.y) && !isNaN(latestAccel.z)) {
+        // Fallback: compute tilt from gravity (assuming stationary between samples)
+        if (latestAccel.has) {
             // Tilt relative to gravity using arctan2 of y/z
             const { y, z } = latestAccel;
             const betaRad = Math.atan2(y, z);
-            const betaDeg = betaRad * (180 / Math.PI);
-            console.log('Using accelerometer for tilt:', betaDeg, 'from y:', y, 'z:', z);
-            return betaDeg;
+            return betaRad * (180 / Math.PI);
         }
-        
-        // If no valid motion data available, return a test value that changes
-        const testValue = Math.sin(Date.now() * 0.001) * 10;
-        console.log('No motion data available, using test value:', testValue);
-        return testValue;
+        return 0;
     }
 
     // Rep detection via hysteresis: neutral -> bendPastThreshold -> returnBelowHysteresis counts 1 rep
@@ -240,69 +211,31 @@
     }
 
     // Event listeners
-    let lastMotionTime = 0;
-    let motionActive = false;
-
     function onOrientation(event) {
-        console.log('Orientation event received:', {
-            beta: event.beta,
-            gamma: event.gamma,
-            alpha: event.alpha,
-            absolute: event.absolute
-        });
-        
-        if (typeof event.beta === 'number' && !isNaN(event.beta)) {
+        if (!state.running) return;
+        if (typeof event.beta === 'number') {
             latestOrientation = { beta: event.beta, has: true };
-            lastMotionTime = Date.now();
-            if (!motionActive) {
-                motionActive = true;
-                updateMotionStatus(true);
-                console.log('Motion detection activated via orientation');
-            }
         }
     }
 
     function onMotion(event) {
+        if (!state.running) return;
         const accG = event.accelerationIncludingGravity;
-        console.log('Motion event received:', {
-            accelerationIncludingGravity: accG,
-            acceleration: event.acceleration,
-            rotationRate: event.rotationRate
-        });
-        
-        if (accG && typeof accG.x === 'number' && typeof accG.y === 'number' && typeof accG.z === 'number' &&
-            !isNaN(accG.x) && !isNaN(accG.y) && !isNaN(accG.z)) {
+        if (accG && typeof accG.x === 'number' && typeof accG.y === 'number' && typeof accG.z === 'number') {
             latestAccel = { x: accG.x, y: accG.y, z: accG.z, has: true };
-            lastMotionTime = Date.now();
-            if (!motionActive) {
-                motionActive = true;
-                updateMotionStatus(true);
-                console.log('Motion detection activated via accelerometer');
-            }
         }
     }
-
-    // Check motion status periodically
-    setInterval(() => {
-        const timeSinceLastMotion = Date.now() - lastMotionTime;
-        if (timeSinceLastMotion > 2000 && motionActive) { // 2 seconds timeout
-            motionActive = false;
-            updateMotionStatus(false);
-        }
-    }, 1000);
 
     // Frame loop to compute filtered angle and detect reps at ~60Hz (or browser rate)
     const alpha = 0.12; // smoothing factor for low-pass
     function tick(ts) {
-        // Always update tilt readout, even when not running
-        const angle = estimateTiltDeg();
-        const filtered = lowPassFilter(state.filteredAngleDeg, angle, alpha);
-        state.prevAngleDeg = state.filteredAngleDeg;
-        state.filteredAngleDeg = filtered;
-        updateTiltReadout(filtered);
-
-        // Only process reps when running
         if (state.running) {
+            const angle = estimateTiltDeg();
+            const filtered = lowPassFilter(state.filteredAngleDeg, angle, alpha);
+            state.prevAngleDeg = state.filteredAngleDeg;
+            state.filteredAngleDeg = filtered;
+            updateTiltReadout(filtered);
+
             processAngle(filtered, typeof ts === 'number' ? ts : performance.now());
         }
         requestAnimationFrame(tick);
@@ -355,9 +288,14 @@
 
         if (!state.hasPermission) {
             // Try to start anyway; Android Chrome does not require explicit permission
-            console.log('Attempting to start without explicit permission…');
+            if (elPermissionStatus) {
+                elPermissionStatus.textContent = 'Attempting to start without explicit permission…';
+            }
         }
 
+        // Attach listeners once
+        window.addEventListener('deviceorientation', onOrientation, true);
+        window.addEventListener('devicemotion', onMotion, true);
         setRunning(true);
     });
 
@@ -450,55 +388,14 @@
 
     // Init
     function init() {
-        console.log('Initializing Parmi app...');
         buildGrid(state.goal);
         updateStats();
         colorTiles();
-        
-        // Always attach motion listeners with proper event names and bubbling phase
-        console.log('Attaching motion event listeners...');
-        window.addEventListener('deviceorientation', onOrientation, false);
-        window.addEventListener('devicemotion', onMotion, false);
-        
-        // Add touch/click listeners to trigger motion detection
-        document.addEventListener('touchstart', () => {
-            console.log('Touch detected, attempting to enable motion');
-            // Some devices need user interaction to enable motion
-            if (!motionActive) {
-                updateMotionStatus(true);
-                motionActive = true;
-            }
-        });
-        
-        document.addEventListener('click', () => {
-            console.log('Click detected, attempting to enable motion');
-            if (!motionActive) {
-                updateMotionStatus(true);
-                motionActive = true;
-            }
-        });
-        
-        // Start the animation loop
-        console.log('Starting animation loop...');
         requestAnimationFrame(tick);
-        
-        // Request permissions and show overlay if needed
         showPermissionOverlayIfNeeded();
         
         // Start with selection page
         showSelectionPage();
-        
-        // Force initial motion status update after a delay
-        setTimeout(() => {
-            if (!motionActive) {
-                console.log('No motion detected initially, showing inactive status');
-                updateMotionStatus(false);
-            } else {
-                console.log('Motion detection is active');
-            }
-        }, 2000);
-        
-        console.log('Initialization complete');
     }
 
     // Rebuild grid when target changes (only when idle to keep UX predictable)
@@ -511,14 +408,9 @@
         updateStats();
     });
 
-    // Keep threshold state updated live
-    elThreshold.addEventListener('input', () => {
-        state.thresholdDeg = Math.max(10, Math.min(60, Number(elThreshold.value) || 30));
-    });
-
     // iOS visual hint
     const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
-    if (isIOS) {
+    if (isIOS && elPermissionStatus) {
         elPermissionStatus.textContent = 'iOS requires tapping Enable Motion to start';
     }
 
