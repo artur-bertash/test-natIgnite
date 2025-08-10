@@ -4,7 +4,7 @@
   - Uses DeviceMotion/DeviceOrientation to infer arm bend repetitions
   - Low-pass filtering + hysteresis to reduce noise and avoid double counts
   - Gamified coloring grid that fills tiles as reps are completed
-  - Integrated auditory feedback with alternating beats
+  - Integrated auditory feedback with alternating beats synced to motion start/end
 */
 
 (function () {
@@ -125,11 +125,10 @@
         updateMotionStatus(isRunning);
     }
     
-    // Simplified function to play the alternating sound for each rep
-    function playRepSound() {
+    // **FIX #2:** New function to play sound based on motion phase
+    function playActionSound(action) { // action can be 'start' or 'complete'
         if (!elSound1 || !elSound2) return;
-        const isEvenBeat = (state.reps - 1) % 2 === 0;
-        const soundToPlay = isEvenBeat ? elSound1 : elSound2;
+        const soundToPlay = (action === 'start') ? elSound1 : elSound2;
         soundToPlay.currentTime = 0;
         soundToPlay.play().catch(e => console.warn("Audio playback failed:", e));
     }
@@ -144,7 +143,6 @@
                     elPermissionOverlay.style.display = 'none';
                 }
             } else {
-                // Non-iOS 13+ browsers
                 state.hasPermission = true;
                 elPermissionOverlay.style.display = 'none';
             }
@@ -153,7 +151,6 @@
         }
     }
 
-    // ... (lowPassFilter and estimateTiltDeg functions remain the same)
     function lowPassFilter(prev, next, alpha) { return prev + alpha * (next - prev); }
     let latestOrientation = { beta: 0, has: false };
     let latestAccel = { x: 0, y: 0, z: 0, has: false };
@@ -171,20 +168,22 @@
         return 0;
     }
 
-    // Rep detection via hysteresis
+    // **FIX #2:** Rep detection logic updated for two-part sounds
     function processAngle(angleDeg, timestampMs) {
         const relative = angleDeg - state.neutralAngleDeg;
         const absRel = Math.abs(relative);
 
         if (state.phase === 'neutral' && absRel >= state.thresholdDeg) {
+            // Motion starts: play the first sound
             state.phase = 'bent';
+            playActionSound('start');
         } else if (state.phase === 'bent' && absRel <= state.hysteresisDeg) {
+            // Motion completes: play the second sound and count the rep
             if (timestampMs - state.lastPeakTs >= state.minRepMs) {
                 state.reps = Math.min(state.goal, state.reps + 1);
                 state.lastPeakTs = timestampMs;
                 
-                // INTEGRATION POINT: Play sound on successful rep
-                playRepSound();
+                playActionSound('complete');
                 
                 updateStats();
                 colorTiles();
@@ -220,14 +219,23 @@
 
     // Button handlers
     elPermissionOverlay.addEventListener('click', requestPermissionIfNeeded);
-    elCalibrate.addEventListener('click', () => { /* ... calibration logic ... */ });
+
+    // **FIX #1:** Correctly implement the calibration logic
+    elCalibrate.addEventListener('click', () => {
+        // Set the neutral "zero" angle to the device's current filtered angle
+        state.neutralAngleDeg = state.filteredAngleDeg;
+        // Provide visual feedback that calibration happened
+        elCalibrate.style.transform = 'scale(0.95)';
+        elCalibrate.textContent = "Calibrated!";
+        setTimeout(() => { 
+            elCalibrate.style.transform = 'scale(1)';
+            elCalibrate.textContent = "Calibrate Neutral";
+         }, 750);
+    });
 
     elStart.addEventListener('click', () => {
-        // *** THE FIX: PRIME THE AUDIO ON USER CLICK ***
-        // This "unlocks" the audio so it can be played by the script later.
         elSound1.load();
         elSound2.load();
-
         window.addEventListener('deviceorientation', onOrientation, true);
         window.addEventListener('devicemotion', onMotion, true);
         setRunning(true);
@@ -281,11 +289,9 @@
 
     // Init
     function init() {
-        // Show permission overlay only if needed (iOS 13+)
         if (typeof DeviceMotionEvent.requestPermission === 'function') {
             elPermissionOverlay.style.display = 'grid';
         }
-
         buildGrid(state.goal);
         updateStats();
         requestAnimationFrame(tick);
