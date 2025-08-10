@@ -103,15 +103,17 @@
         </section>
 
         <section class="card" id="controls-card">
-            <h2>Session</h2>
+            <div class="card-wrapper">
+                <h2>Session</h2>
 
-            <!-- Motion Status Indicator -->
-            <div class="motion-status">
+            <!-- Compact Motion Status Indicator -->
+            <div class="motion-status motion-status--tiny" title="Motion Detection">
                 <div class="status-indicator" id="motion-status">
-                    <div class="status-dot"></div>
-                    <span class="status-text">Motion Detection</span>
+                    <div class="status-dot" aria-label="Motion status"></div>
                 </div>
             </div>
+            </div>
+            
 
             <!-- Removed target/threshold inputs to simplify UI; functionality is preserved via defaults and intensity selection -->
             <div class="buttons">
