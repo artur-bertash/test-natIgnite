@@ -1224,9 +1224,11 @@ input[type="number"]:focus {
 /* Tiny compact variant for motion status */
 .motion-status--tiny {
     padding: 4px;
-    margin-bottom: 6px;
+    margin: 0;
     background: transparent;
     border: none;
+    display: flex;
+    align-items: center;
 }
 
 .motion-status--tiny .status-indicator {
@@ -1246,6 +1248,21 @@ input[type="number"]:focus {
 .card-wrapper {
     display: flex;
     gap: 12px;
-    
-    align-items:baseline;
+
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: nowrap;
+    width: 100%;
+}
+
+.session {
+    flex: 1;
+    height: 100%;
+    align-items: center;
+    display: flex;
+}
+
+/* Ensure no extra bottom margin on the inline header */
+.card-wrapper h2 {
+    margin: 0;
 }
