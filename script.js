@@ -31,8 +31,8 @@
 
     const intensityData = {
         'light': { name: 'Light', reps: 10 },
-        'moderate': { name: 'Moderate', reps: 15 },
-        'vigorous': { name: 'Vigorous', reps: 30 }
+        'moderate': { name: 'Moderate', reps: 20 },
+        'vigorous': { name: 'Vigorous', reps: 50 }
     };
 
     // Original elements
@@ -46,7 +46,8 @@
     const elRepGoal = document.getElementById('rep-goal');
     const elTiltReadout = document.getElementById('tilt-readout');
     const elProgressBar = document.getElementById('progress-bar');
-    const elGrid = document.getElementById('coloring-grid');
+    const elPaintingImage = document.getElementById('painting-image');
+    const elPaintingProgressText = document.getElementById('painting-progress-text');
 
     // Audio Elements
     const elSound1 = document.getElementById('sound1');
@@ -57,7 +58,7 @@
         hasPermission: false,
         running: false,
         reps: 0,
-        goal: 30,
+        goal: 20,
         selectedExercise: null,
         selectedIntensity: null,
         // Orientation and filtering
@@ -72,21 +73,11 @@
         minRepMs: 400,
     };
 
-    // Populate grid
-    function buildGrid(tileCount) {
-        elGrid.innerHTML = '';
-        const columns = Math.ceil(Math.sqrt(tileCount * (6 / 5)));
-        elGrid.style.gridTemplateColumns = `repeat(${columns}, 1fr)`;
-
-        for (let i = 0; i < tileCount; i += 1) {
-            const div = document.createElement('div');
-            div.className = 'tile';
-            div.dataset.index = String(i);
-            const fill = document.createElement('div');
-            fill.className = 'tile__fill';
-            div.appendChild(fill);
-            elGrid.appendChild(div);
-        }
+    // Initialize painting display
+    function initializePainting() {
+        elPaintingImage.src = 'paintLakeLuis/paint0.jpg';
+        elPaintingProgressText.textContent = `0 / ${state.goal}`;
+        elPaintingProgressText.classList.remove('complete', 'cycle-info');
     }
 
     // Update UI
@@ -107,15 +98,52 @@
         }
     }
 
-    function colorTiles() {
-        const tiles = elGrid.querySelectorAll('.tile');
-        tiles.forEach((t, idx) => {
-            if (idx < state.reps) {
-                t.classList.add('tile--on');
-            } else {
-                t.classList.remove('tile--on');
+    function updatePainting() {
+        const currentRep = Math.min(state.reps, state.goal);
+        
+        // For goals > 20, cycle through the 20 painting images
+        let imageIndex;
+        if (state.goal <= 20) {
+            imageIndex = Math.min(currentRep, 20);
+        } else {
+            // Cycle through images: 0-19, then repeat
+            imageIndex = currentRep % 20;
+            // Show final image (paint20.jpg) when complete
+            if (currentRep >= state.goal) {
+                imageIndex = 20;
             }
-        });
+        }
+        
+        const imagePath = `paintLakeLuis/paint${imageIndex}.jpg`;
+        
+        // Add animation class
+        elPaintingImage.classList.add('progressing');
+        
+        // Update image source
+        elPaintingImage.src = imagePath;
+        
+        // Update progress text to show current reps vs goal
+        if (state.reps >= state.goal) {
+            elPaintingProgressText.textContent = `Complete! 🎨`;
+            elPaintingProgressText.classList.add('complete');
+            elPaintingProgressText.classList.remove('cycle-info');
+        } else {
+            if (state.goal > 20) {
+                const currentCycle = Math.floor(currentRep / 20) + 1;
+                const totalCycles = Math.ceil(state.goal / 20);
+                elPaintingProgressText.textContent = `${currentRep} / ${state.goal} (Cycle ${currentCycle}/${totalCycles})`;
+                elPaintingProgressText.classList.add('cycle-info');
+            } else {
+                elPaintingProgressText.textContent = `${currentRep} / ${state.goal}`;
+                elPaintingProgressText.classList.remove('cycle-info');
+            }
+            elPaintingProgressText.classList.remove('complete');
+        }
+        
+        // Remove animation class after animation completes
+        setTimeout(() => {
+            elPaintingImage.classList.remove('progressing');
+        }, 500);
     }
 
     function setRunning(isRunning) {
@@ -186,7 +214,7 @@
                 playActionSound('complete');
                 
                 updateStats();
-                colorTiles();
+                updatePainting();
             }
             state.phase = 'neutral';
         }
@@ -248,8 +276,9 @@
     elReset.addEventListener('click', () => {
         state.reps = 0;
         state.phase = 'neutral';
+        elPaintingProgressText.classList.remove('complete', 'cycle-info');
         updateStats();
-        colorTiles();
+        updatePainting();
     });
 
     // Exercise selection functions
@@ -266,8 +295,8 @@
         const intensity = intensityData[elIntensitySelect.value];
         state.goal = intensity.reps;
         updateStats();
-        buildGrid(state.goal);
-        colorTiles();
+        initializePainting(); // Call the new function here
+        updatePainting();
 
         const exercise = exerciseData[elExerciseSelect.value];
         elExerciseSubtitle.textContent = `${exercise.name} - ${intensity.name} (${intensity.reps} reps)`;
@@ -279,7 +308,9 @@
         setRunning(false);
         state.reps = 0;
         state.phase = 'neutral';
+        elPaintingProgressText.classList.remove('complete', 'cycle-info');
         updateStats();
+        updatePainting();
     }
 
     elExerciseSelect.addEventListener('change', checkSelectionComplete);
@@ -292,7 +323,7 @@
         if (typeof DeviceMotionEvent.requestPermission === 'function') {
             elPermissionOverlay.style.display = 'grid';
         }
-        buildGrid(state.goal);
+        initializePainting(); // Call the new function here
         updateStats();
         requestAnimationFrame(tick);
         showSelectionPage();

@@ -25,12 +25,64 @@
         <div class="floating-dot dot-1"></div>
         <div class="floating-dot dot-2"></div>
         <div class="floating-dot dot-3"></div>
+        <div class="floating-particle particle-1"></div>
+        <div class="floating-particle particle-2"></div>
+        <div class="floating-particle particle-3"></div>
+        <div class="floating-particle particle-4"></div>
+        <div class="floating-particle particle-5"></div>
     </div>
 
     <!-- Exercise Selection Page -->
     <main class="app" id="selection-page">
         <header class="app__header">
-            <div class="header-icon">🌟</div>
+            <div class="header-logo">
+                <svg width="56" height="56" viewBox="0 0 56 56" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <!-- Outer ring with gradient -->
+                    <circle cx="28" cy="28" r="26" fill="url(#outerGradient)" stroke="url(#borderGradient)" stroke-width="2"/>
+                    
+                    <!-- Inner circle with progress effect -->
+                    <circle cx="28" cy="28" r="20" fill="url(#innerGradient)" opacity="0.9"/>
+                    
+                    <!-- Fitness icon - stylized dumbbell -->
+                    <path d="M18 28L22 28L24 26L26 28L28 28L30 28L32 26L34 28L38 28" 
+                          stroke="white" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+                    
+                    <!-- Progress dots -->
+                    <circle cx="20" cy="32" r="2" fill="url(#accentGradient)" opacity="0.8" class="progress-dot">
+                        <animate attributeName="opacity" values="0.8;1;0.8" dur="2s" repeatCount="indefinite" begin="0s"/>
+                    </circle>
+                    <circle cx="28" cy="32" r="2" fill="url(#accentGradient)" opacity="0.6" class="progress-dot">
+                        <animate attributeName="opacity" values="0.6;1;0.6" dur="2s" repeatCount="indefinite" begin="0.7s"/>
+                    </circle>
+                    <circle cx="36" cy="32" r="2" fill="url(#accentGradient)" opacity="0.4" class="progress-dot">
+                        <animate attributeName="opacity" values="0.4;1;0.4" dur="2s" repeatCount="indefinite" begin="1.4s"/>
+                    </circle>
+                    
+                    <!-- Shine effect -->
+                    <circle cx="22" cy="22" r="4" fill="white" opacity="0.3"/>
+                    
+                    <defs>
+                        <linearGradient id="outerGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                            <stop offset="0%" style="stop-color:#667eea;stop-opacity:1" />
+                            <stop offset="50%" style="stop-color:#a78bfa;stop-opacity:1" />
+                            <stop offset="100%" style="stop-color:#f687b3;stop-opacity:1" />
+                        </linearGradient>
+                        <linearGradient id="innerGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                            <stop offset="0%" style="stop-color:#48bb78;stop-opacity:1" />
+                            <stop offset="100%" style="stop-color:#68d391;stop-opacity:1" />
+                        </linearGradient>
+                        <linearGradient id="borderGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                            <stop offset="0%" style="stop-color:#f687b3;stop-opacity:1" />
+                            <stop offset="50%" style="stop-color:#a78bfa;stop-opacity:1" />
+                            <stop offset="100%" style="stop-color:#667eea;stop-opacity:1" />
+                        </linearGradient>
+                        <linearGradient id="accentGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                            <stop offset="0%" style="stop-color:#ffffff;stop-opacity:1" />
+                            <stop offset="100%" style="stop-color:#f0f0f0;stop-opacity:1" />
+                        </linearGradient>
+                    </defs>
+                </svg>
+            </div>
             <h1>Parmi</h1>
             <p class="subtitle">Choose your workout</p>
         </header>
@@ -38,7 +90,19 @@
         <section class="selection-card">
             <div class="selection-group">
                 <label class="selection-label">
-                    <span class="label-icon">🏃‍♀️</span>
+                    <div class="label-icon">
+                        <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <!-- Dumbbell icon -->
+                            <path d="M3 10L7 10L9 8L11 10L15 10" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="dumbbell-bar"/>
+                            <circle cx="5" cy="10" r="2" fill="currentColor" class="dumbbell-weight"/>
+                            <circle cx="15" cy="10" r="2" fill="currentColor" class="dumbbell-weight"/>
+                            <!-- Animated pulse -->
+                            <circle cx="10" cy="10" r="1" fill="currentColor" opacity="0.6" class="pulse-dot">
+                                <animate attributeName="r" values="1;3;1" dur="1.5s" repeatCount="indefinite"/>
+                                <animate attributeName="opacity" values="0.6;0;0.6" dur="1.5s" repeatCount="indefinite"/>
+                            </circle>
+                        </svg>
+                    </div>
                     Exercise Type
                 </label>
                 <div class="dropdown-container">
@@ -61,15 +125,30 @@
 
             <div class="selection-group">
                 <label class="selection-label">
-                    <span class="label-icon">⚡</span>
+                    <div class="label-icon">
+                        <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <!-- Lightning bolt -->
+                            <path d="M10 2L6 10L9 10L8 18L14 10L11 10L12 2Z" fill="currentColor" class="lightning-bolt"/>
+                            <!-- Sparkle effects -->
+                            <circle cx="5" cy="5" r="0.5" fill="currentColor" opacity="0.8" class="sparkle">
+                                <animate attributeName="opacity" values="0.8;0;0.8" dur="2s" repeatCount="indefinite" begin="0s"/>
+                            </circle>
+                            <circle cx="15" cy="5" r="0.5" fill="currentColor" opacity="0.6" class="sparkle">
+                                <animate attributeName="opacity" values="0.6;0;0.6" dur="2s" repeatCount="indefinite" begin="0.7s"/>
+                            </circle>
+                            <circle cx="5" cy="15" r="0.5" fill="currentColor" opacity="0.7" class="sparkle">
+                                <animate attributeName="opacity" values="0.7;0;0.7" dur="2s" repeatCount="indefinite" begin="1.4s"/>
+                            </circle>
+                        </svg>
+                    </div>
                     Intensity Level
                 </label>
                 <div class="dropdown-container">
                     <select id="intensity-select" class="dropdown-select">
                         <option value="" disabled selected>Select intensity</option>
                         <option value="light">Light (10 reps)</option>
-                        <option value="moderate">Moderate (15 reps)</option>
-                        <option value="vigorous">Vigorous (30 reps)</option>
+                        <option value="moderate">Moderate (20 reps)</option>
+                        <option value="vigorous">Vigorous (50 reps)</option>
                     </select>
                     <div class="dropdown-arrow">⌄</div>
                 </div>
@@ -96,8 +175,13 @@
 
         <section class="card card--stage" id="coloring-card">
             <div class="stage-wrap">
-                <div class="stage" aria-label="Coloring stage">
-                    <div id="coloring-grid" class="coloring-grid" aria-label="Coloring grid"></div>
+                <div class="stage" aria-label="Painting stage">
+                    <div id="painting-display" class="painting-display" aria-label="Painting progress">
+                        <img id="painting-image" src="paintLakeLuis/paint0.jpg" alt="Painting progress" class="painting-image">
+                        <div class="painting-overlay">
+                            <div class="painting-progress-text" id="painting-progress-text">0 / 20</div>
+                        </div>
+                    </div>
                 </div>
             </div>
         </section>
@@ -130,7 +214,7 @@
                 </div>
                 <div class="stat">
                     <div class="stat__label">Goal</div>
-                    <div class="stat__value" id="rep-goal">30</div>
+                    <div class="stat__value" id="rep-goal">20</div>
                 </div>
                 <div class="stat">
                     <div class="stat__label">Tilt (°)</div>
