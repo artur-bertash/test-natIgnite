@@ -136,25 +136,35 @@
     // Motion permission handling (iOS 13+ requires user gesture)
     async function requestPermissionIfNeeded() {
         try {
+            console.log('Requesting motion permissions...');
             const anyDevMotion = window.DeviceMotionEvent;
             const anyDevOrient = window.DeviceOrientationEvent;
 
             let motionPermitted = true;
+            let orientationPermitted = true;
+
+            // Check if permission APIs exist (iOS 13+)
             if (anyDevMotion && typeof anyDevMotion.requestPermission === 'function') {
+                console.log('Requesting DeviceMotion permission...');
                 const res = await anyDevMotion.requestPermission();
                 motionPermitted = res === 'granted';
-                console.log('Motion permission:', res);
+                console.log('DeviceMotion permission result:', res);
+            } else {
+                console.log('DeviceMotion permission API not available (likely Android or older iOS)');
             }
 
-            let orientationPermitted = true;
             if (anyDevOrient && typeof anyDevOrient.requestPermission === 'function') {
+                console.log('Requesting DeviceOrientation permission...');
                 const res = await anyDevOrient.requestPermission();
                 orientationPermitted = res === 'granted';
-                console.log('Orientation permission:', res);
+                console.log('DeviceOrientation permission result:', res);
+            } else {
+                console.log('DeviceOrientation permission API not available (likely Android or older iOS)');
             }
 
+            // On Android and older iOS, permissions are typically granted by default
             state.hasPermission = motionPermitted && orientationPermitted;
-            console.log('Has permission:', state.hasPermission);
+            console.log('Final permission status:', state.hasPermission);
             
             if (state.hasPermission && elPermissionOverlay) {
                 elPermissionOverlay.style.display = 'none';
@@ -162,7 +172,9 @@
             return state.hasPermission;
         } catch (err) {
             console.error('Permission request failed:', err);
-            return false;
+            // On error, assume permissions are available (common on Android)
+            state.hasPermission = true;
+            return true;
         }
     }
 
@@ -178,27 +190,30 @@
     let latestAccel = { x: 0, y: 0, z: 0, has: false };
 
     function estimateTiltDeg() {
-        if (latestOrientation.has && Number.isFinite(latestOrientation.beta)) {
+        // Try orientation data first (most accurate for tilt)
+        if (latestOrientation.has && Number.isFinite(latestOrientation.beta) && !isNaN(latestOrientation.beta)) {
             // Clamp beta to [-180, 180]
             let beta = latestOrientation.beta;
             if (beta > 180) beta -= 360;
             if (beta < -180) beta += 360;
-            console.log('Using orientation beta:', beta);
+            console.log('Using orientation beta for tilt:', beta);
             return beta;
         }
-        // Fallback: compute tilt from gravity (assuming stationary between samples)
-        if (latestAccel.has) {
+        
+        // Fallback to accelerometer data
+        if (latestAccel.has && Number.isFinite(latestAccel.y) && Number.isFinite(latestAccel.z) &&
+            !isNaN(latestAccel.y) && !isNaN(latestAccel.z)) {
             // Tilt relative to gravity using arctan2 of y/z
             const { y, z } = latestAccel;
             const betaRad = Math.atan2(y, z);
             const betaDeg = betaRad * (180 / Math.PI);
-            console.log('Using accelerometer tilt:', betaDeg);
+            console.log('Using accelerometer for tilt:', betaDeg, 'from y:', y, 'z:', z);
             return betaDeg;
         }
         
-        // If no motion data available, return a test value that changes
+        // If no valid motion data available, return a test value that changes
         const testValue = Math.sin(Date.now() * 0.001) * 10;
-        console.log('Using test value:', testValue);
+        console.log('No motion data available, using test value:', testValue);
         return testValue;
     }
 
@@ -229,26 +244,40 @@
     let motionActive = false;
 
     function onOrientation(event) {
-        console.log('Orientation event:', event.beta, event.gamma, event.alpha);
-        if (typeof event.beta === 'number') {
+        console.log('Orientation event received:', {
+            beta: event.beta,
+            gamma: event.gamma,
+            alpha: event.alpha,
+            absolute: event.absolute
+        });
+        
+        if (typeof event.beta === 'number' && !isNaN(event.beta)) {
             latestOrientation = { beta: event.beta, has: true };
             lastMotionTime = Date.now();
             if (!motionActive) {
                 motionActive = true;
                 updateMotionStatus(true);
+                console.log('Motion detection activated via orientation');
             }
         }
     }
 
     function onMotion(event) {
         const accG = event.accelerationIncludingGravity;
-        console.log('Motion event:', accG);
-        if (accG && typeof accG.x === 'number' && typeof accG.y === 'number' && typeof accG.z === 'number') {
+        console.log('Motion event received:', {
+            accelerationIncludingGravity: accG,
+            acceleration: event.acceleration,
+            rotationRate: event.rotationRate
+        });
+        
+        if (accG && typeof accG.x === 'number' && typeof accG.y === 'number' && typeof accG.z === 'number' &&
+            !isNaN(accG.x) && !isNaN(accG.y) && !isNaN(accG.z)) {
             latestAccel = { x: accG.x, y: accG.y, z: accG.z, has: true };
             lastMotionTime = Date.now();
             if (!motionActive) {
                 motionActive = true;
                 updateMotionStatus(true);
+                console.log('Motion detection activated via accelerometer');
             }
         }
     }
@@ -421,17 +450,15 @@
 
     // Init
     function init() {
+        console.log('Initializing Parmi app...');
         buildGrid(state.goal);
         updateStats();
         colorTiles();
         
-        // Always attach motion listeners
-        window.addEventListener('deviceorientation', onOrientation, true);
-        window.addEventListener('devicemotion', onMotion, true);
-        
-        // Also try alternative event names for broader compatibility
-        window.addEventListener('orientationchange', onOrientation, true);
-        window.addEventListener('motionchange', onMotion, true);
+        // Always attach motion listeners with proper event names and bubbling phase
+        console.log('Attaching motion event listeners...');
+        window.addEventListener('deviceorientation', onOrientation, false);
+        window.addEventListener('devicemotion', onMotion, false);
         
         // Add touch/click listeners to trigger motion detection
         document.addEventListener('touchstart', () => {
@@ -451,19 +478,27 @@
             }
         });
         
+        // Start the animation loop
+        console.log('Starting animation loop...');
         requestAnimationFrame(tick);
+        
+        // Request permissions and show overlay if needed
         showPermissionOverlayIfNeeded();
         
         // Start with selection page
         showSelectionPage();
         
-        // Force initial motion status update
+        // Force initial motion status update after a delay
         setTimeout(() => {
             if (!motionActive) {
                 console.log('No motion detected initially, showing inactive status');
                 updateMotionStatus(false);
+            } else {
+                console.log('Motion detection is active');
             }
-        }, 1000);
+        }, 2000);
+        
+        console.log('Initialization complete');
     }
 
     // Rebuild grid when target changes (only when idle to keep UX predictable)
