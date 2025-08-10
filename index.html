@@ -16,7 +16,7 @@
             <p class="muted">Tap anywhere to enable motion sensing</p>
         </div>
     </div>
-    
+
     <!-- Floating background elements -->
     <div class="floating-elements">
         <div class="floating-circle circle-1"></div>
@@ -26,7 +26,7 @@
         <div class="floating-dot dot-2"></div>
         <div class="floating-dot dot-3"></div>
     </div>
-    
+
     <!-- Exercise Selection Page -->
     <main class="app" id="selection-page">
         <header class="app__header">
@@ -104,7 +104,7 @@
 
         <section class="card" id="controls-card">
             <h2>Session</h2>
-            
+
             <!-- Motion Status Indicator -->
             <div class="motion-status">
                 <div class="status-indicator" id="motion-status">
@@ -112,17 +112,8 @@
                     <span class="status-text">Motion Detection</span>
                 </div>
             </div>
-            
-            <div class="controls">
-                <label class="control">
-                    <span>Target reps</span>
-                    <input type="number" id="input-target" min="1" max="200" value="30" inputmode="numeric" />
-                </label>
-                <label class="control">
-                    <span>Threshold (°)</span>
-                    <input type="number" id="input-threshold" min="10" max="60" value="30" inputmode="numeric" />
-                </label>
-            </div>
+
+            <!-- Removed target/threshold inputs to simplify UI; functionality is preserved via defaults and intensity selection -->
             <div class="buttons">
                 <button class="btn" id="btn-calibrate">Calibrate Neutral</button>
                 <button class="btn btn-success" id="btn-start">Start</button>

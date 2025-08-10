@@ -13,11 +13,11 @@
     const elStartExercise = document.getElementById('btn-start-exercise');
     const elBackToSelection = document.getElementById('btn-back-to-selection');
     const elExerciseSubtitle = document.getElementById('exercise-subtitle');
-    
+
     // Exercise dropdowns
     const elExerciseSelect = document.getElementById('exercise-select');
     const elIntensitySelect = document.getElementById('intensity-select');
-    
+
     // Exercise data
     const exerciseData = {
         'lateral-raises': { name: 'Lateral Raises', category: 'Arms' },
@@ -27,7 +27,7 @@
         'ankle-rom': { name: 'Ankle Range-of-Motion', category: 'Legs' },
         'hip-abduction': { name: 'Hip Abduction', category: 'Legs' }
     };
-    
+
     const intensityData = {
         'light': { name: 'Light', reps: 10 },
         'moderate': { name: 'Moderate', reps: 15 },
@@ -55,7 +55,7 @@
         hasPermission: false,
         running: false,
         reps: 0,
-        goal: Number(elTarget.value) || 30,
+        goal: Number(elTarget?.value) || 30,
         selectedExercise: null,
         selectedIntensity: null,
         // Orientation and filtering
@@ -63,7 +63,7 @@
         filteredAngleDeg: 0,
         prevAngleDeg: 0,
         // Hysteresis
-        thresholdDeg: Number(elThreshold.value) || 30,
+        thresholdDeg: Number(elThreshold?.value) || 30,
         hysteresisDeg: 6, // must drop below this when returning
         phase: 'neutral', // 'neutral' | 'bent'
         // Timing (optional debounce)
@@ -282,8 +282,10 @@
     });
 
     elStart.addEventListener('click', () => {
-        state.goal = Math.max(1, Math.min(200, Number(elTarget.value) || 30));
-        state.thresholdDeg = Math.max(10, Math.min(60, Number(elThreshold.value) || 30));
+        const nextGoal = Number(elTarget?.value ?? state.goal);
+        const nextThreshold = Number(elThreshold?.value ?? state.thresholdDeg);
+        state.goal = Math.max(1, Math.min(200, Number.isFinite(nextGoal) ? nextGoal : state.goal));
+        state.thresholdDeg = Math.max(10, Math.min(60, Number.isFinite(nextThreshold) ? nextThreshold : state.thresholdDeg));
         updateStats();
 
         if (!state.hasPermission) {
@@ -331,19 +333,21 @@
     function showExercisePage() {
         elSelectionPage.style.display = 'none';
         elExercisePage.style.display = 'grid';
-        
+
         // Update the target reps based on selected intensity
         if (state.selectedIntensity) {
             const intensity = intensityData[state.selectedIntensity];
             state.goal = intensity.reps;
-            elTarget.value = intensity.reps;
+            if (elTarget) {
+                elTarget.value = intensity.reps;
+            }
             updateStats();
             buildGrid(state.goal);
             colorTiles();
         }
-        
+
         updateExerciseSubtitle();
-        
+
         // Request motion permissions when entering exercise page
         showPermissionOverlayIfNeeded();
     }
@@ -351,7 +355,7 @@
     function showSelectionPage() {
         elExercisePage.style.display = 'none';
         elSelectionPage.style.display = 'grid';
-        
+
         // Reset exercise state
         state.reps = 0;
         state.phase = 'neutral';
@@ -379,7 +383,7 @@
         showSelectionPage();
     });
 
-    // Fix missing threshold event listener
+    // Optional threshold input (if present in DOM)
     if (elThreshold) {
         elThreshold.addEventListener('input', () => {
             state.thresholdDeg = Math.max(10, Math.min(60, Number(elThreshold.value) || 30));
@@ -393,20 +397,22 @@
         colorTiles();
         requestAnimationFrame(tick);
         showPermissionOverlayIfNeeded();
-        
+
         // Start with selection page
         showSelectionPage();
     }
 
     // Rebuild grid when target changes (only when idle to keep UX predictable)
-    elTarget.addEventListener('change', () => {
-        const newGoal = Math.max(1, Math.min(200, Number(elTarget.value) || 30));
-        state.goal = newGoal;
-        buildGrid(state.goal);
-        // Re-apply colored tiles based on current reps
-        colorTiles();
-        updateStats();
-    });
+    if (elTarget) {
+        elTarget.addEventListener('change', () => {
+            const newGoal = Math.max(1, Math.min(200, Number(elTarget.value) || 30));
+            state.goal = newGoal;
+            buildGrid(state.goal);
+            // Re-apply colored tiles based on current reps
+            colorTiles();
+            updateStats();
+        });
+    }
 
     // iOS visual hint
     const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
